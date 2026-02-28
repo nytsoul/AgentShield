@@ -13,7 +13,7 @@ import random
 
 from auth import get_current_user, require_admin
 from models import UserInfo
-from classifiers.memory_integrity_layer import validate_memory
+from classifiers.memory_integrity_layer import verify_memory
 
 router = APIRouter(prefix="/api/memory-integrity", tags=["Memory Integrity"])
 
@@ -164,7 +164,7 @@ async def restore_baseline(file_name: str, user: UserInfo = Depends(require_admi
 @router.post("/validate")
 async def validate_content(req: ValidateRequest, user: UserInfo = Depends(get_current_user)):
     """Run memory integrity validation on content."""
-    result = validate_memory(req.session_id, req.content)
+    result = verify_memory(req.content)
     return {"result": result}
 
 

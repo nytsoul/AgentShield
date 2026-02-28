@@ -5,13 +5,13 @@ from database import log_security_event, get_security_events, get_dashboard_stat
 
 from classifiers.ingestion_layer import analyze_ingestion
 from classifiers.pre_execution_layer import scan_tool, scan_document
-from classifiers.memory_integrity_layer import validate_memory
+from classifiers.memory_integrity_layer import verify_memory
 from classifiers.conversation_intelligence_layer import analyze_conversation
 from classifiers.output_layer import filter_output
-from classifiers.adversarial_response_layer import get_honeypot_status
-from classifiers.inter_agent_layer import validate_agent_call
-from classifiers.adaptive_learning_layer import update_rules
-from classifiers.observability_layer import get_observability_data
+from classifiers.adversarial_response_layer import evaluate_honeypot
+from classifiers.inter_agent_layer import validate_agent_interaction
+from classifiers.adaptive_learning_layer import learn_from_attack
+from classifiers.observability_layer import get_observability_metrics
 
 router = APIRouter(prefix="/api/v1/layers", tags=["Security Layers"])
 
@@ -50,7 +50,7 @@ async def run_pre_execution(req: LayerTestRequest, user: UserInfo = Depends(get_
 # ── Layer 3: Memory Integrity ───────────────────────────────────────
 @router.post("/memory")
 async def run_memory(req: LayerTestRequest, user: UserInfo = Depends(get_current_user)):
-    result = validate_memory(req.session_id, req.content)
+    result = verify_memory(req.content)
     log_security_event(
         user_id=user.user_id, session_id=req.session_id, layer=3,
         action="BLOCKED" if result.get("is_corrupted") else "PASSED",
@@ -91,7 +91,7 @@ async def run_output(req: LayerTestRequest, user: UserInfo = Depends(get_current
 # ── Layer 6: Adversarial Response ───────────────────────────────────
 @router.post("/adversarial")
 async def run_adversarial(req: LayerTestRequest, user: UserInfo = Depends(get_current_user)):
-    result = get_honeypot_status(True, 3)
+    result = evaluate_honeypot(req.content, attack_confirmed=True, severity=3)
     log_security_event(
         user_id=user.user_id, session_id=req.session_id, layer=6,
         action="TRAPPED", risk_score=0.95, reason="Honeypot triggered",
@@ -103,7 +103,7 @@ async def run_adversarial(req: LayerTestRequest, user: UserInfo = Depends(get_cu
 # ── Layer 7: Inter-Agent Security ───────────────────────────────────
 @router.post("/inter-agent")
 async def run_inter_agent(req: LayerTestRequest, user: UserInfo = Depends(get_current_user)):
-    result = validate_agent_call("agent-a", "agent-b", req.content)
+    result = validate_agent_interaction(source_agent="agent-a", target_agent="agent-b", message=req.content)
     log_security_event(
         user_id=user.user_id, session_id=req.session_id, layer=7,
         action="BLOCKED" if result.get("is_blocked") else "PASSED",
@@ -116,7 +116,7 @@ async def run_inter_agent(req: LayerTestRequest, user: UserInfo = Depends(get_cu
 # ── Layer 8: Adaptive Learning ──────────────────────────────────────
 @router.post("/adaptive")
 async def run_adaptive(req: LayerTestRequest, user: UserInfo = Depends(get_current_user)):
-    result = update_rules(req.content, 8)
+    result = learn_from_attack(req.content, layer_caught=8, risk_score=0.5)
     log_security_event(
         user_id=user.user_id, session_id=req.session_id, layer=8,
         action="OPTIMIZED", risk_score=0.0, reason="Rules updated",
@@ -128,7 +128,7 @@ async def run_adaptive(req: LayerTestRequest, user: UserInfo = Depends(get_curre
 # ── Layer 9: Observability (Admin Only) ─────────────────────────────
 @router.get("/observability")
 async def run_observability(user: UserInfo = Depends(require_admin)):
-    obs_data = get_observability_data()
+    obs_data = get_observability_metrics()
     db_stats = get_dashboard_stats()
     return {"layer": 9, "name": "Observability", "telemetry": obs_data, "db_stats": db_stats}
 

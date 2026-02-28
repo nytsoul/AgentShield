@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Cpu, Activity, TrendingUp, TrendingDown, GitBranch, Check, AlertTriangle, Zap, Clock, BarChart3, Shield, Lock } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
-/* ── mock data ── */
-const modelVersions = [
+/* ── default / fallback data ── */
+const defaultModelVersions = [
   { version: 'v2.4.07', date: 'Oct 12', status: 'archived', precision: 0.912, recall: 0.887, falsePos: 4.2 },
   { version: 'v2.4.08', date: 'Oct 19', status: 'archived', precision: 0.924, recall: 0.891, falsePos: 3.8 },
   { version: 'v2.4.09', date: 'Oct 26', status: 'archived', precision: 0.931, recall: 0.903, falsePos: 3.2 },
@@ -12,18 +12,7 @@ const modelVersions = [
   { version: 'v2.4.12', date: 'Nov 16', status: 'active', precision: 0.971, recall: 0.938, falsePos: 1.4 },
 ];
 
-const precisionRecallTrend = modelVersions.map((v) => ({
-  version: v.version,
-  precision: v.precision * 100,
-  recall: v.recall * 100,
-}));
-
-const falsePositiveTrend = modelVersions.map((v) => ({
-  version: v.version,
-  rate: v.falsePos,
-}));
-
-const engineLoad = [
+const defaultEngineLoad = [
   { module: 'Semantic Classifier', load: 78, status: 'healthy' },
   { module: 'Pattern Matcher', load: 65, status: 'healthy' },
   { module: 'Injection Detector', load: 92, status: 'warning' },
@@ -31,14 +20,14 @@ const engineLoad = [
   { module: 'Context Validator', load: 71, status: 'healthy' },
 ];
 
-const recentUpdates = [
+const defaultRecentUpdates = [
   { change: 'IndicBERT weights fine-tuned for Hinglish obfuscation', impact: '+2.4%', timestamp: '2h ago' },
   { change: 'Salami attack detection threshold lowered to 0.65', impact: '+1.8%', timestamp: '6h ago' },
   { change: 'New roleplay injection signatures added (847 patterns)', impact: '+3.1%', timestamp: '1d ago' },
   { change: 'Cross-agent delegation rules tightened', impact: '+0.9%', timestamp: '2d ago' },
 ];
 
-const integrityGauge = 98.4;
+const defaultIntegrityGauge = 98.4;
 
 const statusColor: Record<string, string> = {
   active: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
@@ -49,7 +38,64 @@ const statusColor: Record<string, string> = {
 const loadColor = (load: number) => load > 85 ? '#f87171' : load > 70 ? '#fbbf24' : '#34d399';
 
 export default function Layer8AdaptiveLearning() {
+  const [modelVersions, setModelVersions] = useState(defaultModelVersions);
+  const [engineLoad, setEngineLoad] = useState(defaultEngineLoad);
+  const [recentUpdates, setRecentUpdates] = useState(defaultRecentUpdates);
+  const [integrityGauge, setIntegrityGauge] = useState(defaultIntegrityGauge);
+
+  const precisionRecallTrend = modelVersions.map((v) => ({
+    version: v.version,
+    precision: v.precision * 100,
+    recall: v.recall * 100,
+  }));
+
+  const falsePositiveTrend = modelVersions.map((v) => ({
+    version: v.version,
+    rate: v.falsePos,
+  }));
+
   const [selectedVersion, setSelectedVersion] = useState(modelVersions[modelVersions.length - 1]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const authToken = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+      const [statsRes, pipelineRes] = await Promise.all([
+        fetch('http://localhost:8000/api/dashboard/stats', { headers }),
+        fetch('http://localhost:8000/api/dashboard/pipeline-status', { headers }),
+      ]);
+
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        if (stats.model_versions?.length) setModelVersions(stats.model_versions);
+        if (stats.recent_updates?.length) setRecentUpdates(stats.recent_updates);
+        if (stats.integrity_gauge != null) setIntegrityGauge(stats.integrity_gauge);
+      }
+
+      if (pipelineRes.ok) {
+        const pipeline = await pipelineRes.json();
+        if (pipeline.stages?.length) {
+          setEngineLoad(
+            pipeline.stages.map((s: { name: string; load: number; status: string }) => ({
+              module: s.name,
+              load: s.load,
+              status: s.status,
+            })),
+          );
+        }
+      }
+    } catch (err) {
+      console.error('AdaptiveLearning: failed to fetch data', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 15_000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   /* theme-aware card + border tokens */
   const card = 'bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-700/50';

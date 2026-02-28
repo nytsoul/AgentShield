@@ -1,7 +1,7 @@
 # Classifiers package - 9-Layer Security Architecture
 
 from .ingestion_layer import analyze_ingestion, IngestionLayer
-from .pre_execution_layer import scan_pre_execution, PreExecutionLayer
+from .pre_execution_layer import scan_pre_execution, scan_tool, scan_document, PreExecutionLayer
 from .memory_integrity_layer import verify_memory, MemoryIntegrityLayer
 from .conversation_intelligence_layer import analyze_conversation, ConversationIntelligenceLayer
 from .output_layer import filter_output, OutputLayer

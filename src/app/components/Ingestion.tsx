@@ -43,7 +43,7 @@ export default function Layer1Ingestion() {
 
   const fetchRecentEvents = async () => {
     try {
-      const response = await fetch('http://localhost:8080/admin/recent-events');
+      const response = await fetch('http://localhost:8000/admin/recent-events');
       if (response.ok) {
         const data = await response.json();
         const formatted = data.map((ev: any) => ({
@@ -69,7 +69,7 @@ export default function Layer1Ingestion() {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:8080/chat/', {
+      const response = await fetch('http://localhost:8000/chat/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: inputMessage, session_id: 'ingestion-test', role: 'guest' })

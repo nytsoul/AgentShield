@@ -119,7 +119,7 @@ export default function Layer4ConversationIntelligence() {
         </div>
         <div className="flex items-center gap-3">
           <div className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-red-400 animate-pulse" /> 2 Active Threats
+            <span className="size-1.5 rounded-full bg-red-400 animate-pulse" /> {sessions.filter(s => s.status === 'CRITICAL').length} Active Threats
           </div>
           <div className="px-3 py-1.5 rounded-lg bg-white dark:bg-[#111827] border border-slate-700/50 text-slate-300 text-xs font-semibold">
             {sessions.length} Live Sessions
@@ -130,10 +130,10 @@ export default function Layer4ConversationIntelligence() {
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Active Sessions', value: '5', sub: '+2 critical', icon: MessageSquare, color: 'text-cyan-400' },
-          { label: 'Avg. Drift Score', value: '0.342', sub: '↑ 12% from baseline', icon: Activity, color: 'text-yellow-400' },
-          { label: 'Attacks Blocked', value: '14', sub: 'Last 24 hours', icon: Shield, color: 'text-emerald-400' },
-          { label: 'Escalation Rate', value: '23%', sub: 'of probing sessions', icon: TrendingUp, color: 'text-red-400' },
+          { label: 'Active Sessions', value: String(stats.active_sessions), sub: `${sessions.filter(s => s.status === 'CRITICAL').length} critical`, icon: MessageSquare, color: 'text-cyan-400' },
+          { label: 'Avg. Drift Score', value: stats.avg_drift.toFixed(3), sub: 'from baseline', icon: Activity, color: 'text-yellow-400' },
+          { label: 'Attacks Blocked', value: String(stats.attacks_blocked), sub: 'Last 24 hours', icon: Shield, color: 'text-emerald-400' },
+          { label: 'Escalation Rate', value: `${stats.escalation_rate}%`, sub: 'of probing sessions', icon: TrendingUp, color: 'text-red-400' },
         ].map((s) => (
           <div key={s.label} className="bg-white dark:bg-[#111827] border border-slate-700/50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
@@ -157,7 +157,7 @@ export default function Layer4ConversationIntelligence() {
               <button
                 key={s.id}
                 onClick={() => setSelectedSession(s)}
-                className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:bg-slate-800/30 transition-colors ${selectedSession.id === s.id ? 'bg-cyan-500/5 border-l-2 border-l-cyan-400' : 'border-l-2 border-l-transparent'}`}
+                className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:bg-slate-800/30 transition-colors ${selectedSession?.id === s.id ? 'bg-cyan-500/5 border-l-2 border-l-cyan-400' : 'border-l-2 border-l-transparent'}`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-semibold text-slate-900 dark:text-white">{s.id}</span>
@@ -180,7 +180,7 @@ export default function Layer4ConversationIntelligence() {
           <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
             <div>
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Live Transcript</h3>
-              <span className="text-[10px] text-slate-600">{selectedSession.id} — {selectedSession.user}</span>
+              <span className="text-[10px] text-slate-600">{selectedSession?.id || 'N/A'} — {selectedSession?.user || 'N/A'}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Eye className="size-3 text-cyan-400" />

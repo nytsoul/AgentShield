@@ -1,44 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Skull, Target, Clock, AlertTriangle, Zap, Activity, ArrowRight, Eye, Shield, Timer, Gauge, Brain } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-
-/* ── mock data ── */
-const activeEngagements = [
-  { id: 'TRP-8821', attacker: 'anon_x92k', phase: 'ENTRAPPED', timeWasted: '18m 42s', turns: 34, strategy: 'Jailbreak', deceptLevel: 94 },
-  { id: 'TRP-8819', attacker: 'red_team_04', phase: 'PROBING', timeWasted: '7m 12s', turns: 12, strategy: 'Roleplay', deceptLevel: 78 },
-  { id: 'TRP-8817', attacker: 'bot_cluster_7', phase: 'ENTRAPPED', timeWasted: '42m 08s', turns: 89, strategy: 'Extraction', deceptLevel: 97 },
-  { id: 'TRP-8815', attacker: 'anon_p4ss', phase: 'EXHAUSTED', timeWasted: '1h 14m', turns: 156, strategy: 'Social Eng', deceptLevel: 99 },
-  { id: 'TRP-8812', attacker: 'threat_actor_9', phase: 'ENTRAPPED', timeWasted: '23m 55s', turns: 47, strategy: 'Prompt Inj', deceptLevel: 88 },
-];
-
-const deceptionFlowNodes = [
-  { id: 'entry', label: 'Threat Detection', x: 0, status: 'active' },
-  { id: 'redirect', label: 'Silent Redirect', x: 1, status: 'active' },
-  { id: 'decoy', label: 'Decoy Engagement', x: 2, status: 'active' },
-  { id: 'tarpit', label: 'Tarpit Loop', x: 3, status: 'active' },
-  { id: 'exhaust', label: 'Resource Exhaust', x: 4, status: 'pending' },
-  { id: 'intel', label: 'Intel Harvest', x: 5, status: 'pending' },
-];
-
-const intelligenceQueue = [
-  { pattern: 'Multi-turn jailbreak via roleplay persona shift', confidence: 94, source: 'TRP-8821', priority: 'HIGH' },
-  { pattern: 'System prompt leak via error handling exploitation', confidence: 87, source: 'TRP-8817', priority: 'HIGH' },
-  { pattern: 'Context window overflow with recursive instructions', confidence: 76, source: 'TRP-8819', priority: 'MED' },
-  { pattern: 'Social engineering via fake technical support scenario', confidence: 92, source: 'TRP-8815', priority: 'HIGH' },
-];
-
-const trapEfficiency = [
-  { name: 'Jailbreak', value: 34, color: '#f87171' },
-  { name: 'Roleplay', value: 28, color: '#fbbf24' },
-  { name: 'Extraction', value: 22, color: '#22d3ee' },
-  { name: 'Social Eng', value: 16, color: '#a78bfa' },
-];
-
-const timeWastedTrend = Array.from({ length: 24 }, (_, i) => ({
-  hour: `${i}:00`,
-  wasted: 20 + Math.random() * 40 + (i > 8 && i < 20 ? 30 : 0),
-  attacks: Math.floor(5 + Math.random() * 15 + (i > 10 && i < 18 ? 10 : 0)),
-}));
 
 const phaseColor: Record<string, string> = {
   PROBING: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
@@ -52,8 +14,75 @@ const priorityColor: Record<string, string> = {
   LOW: 'bg-slate-500/10 text-slate-400',
 };
 
+const defaultEngagements = [
+  { id: 'TRP-0000', attacker: '—', phase: 'PROBING', timeWasted: '0m 00s', turns: 0, strategy: '—', deceptLevel: 0 },
+];
+
+const defaultFlowNodes = [
+  { id: 'entry', label: 'Threat Detection', x: 0, status: 'active' },
+  { id: 'redirect', label: 'Silent Redirect', x: 1, status: 'active' },
+  { id: 'decoy', label: 'Decoy Engagement', x: 2, status: 'active' },
+  { id: 'tarpit', label: 'Tarpit Loop', x: 3, status: 'active' },
+  { id: 'exhaust', label: 'Resource Exhaust', x: 4, status: 'pending' },
+  { id: 'intel', label: 'Intel Harvest', x: 5, status: 'pending' },
+];
+
+const defaultIntelligenceQueue: { pattern: string; confidence: number; source: string; priority: string }[] = [];
+
+const defaultTrapEfficiency = [
+  { name: 'Jailbreak', value: 25, color: '#f87171' },
+  { name: 'Roleplay', value: 25, color: '#fbbf24' },
+  { name: 'Extraction', value: 25, color: '#22d3ee' },
+  { name: 'Social Eng', value: 25, color: '#a78bfa' },
+];
+
+const defaultTimeWastedTrend = Array.from({ length: 24 }, (_, i) => ({
+  hour: `${i}:00`,
+  wasted: 0,
+  attacks: 0,
+}));
+
 export default function Layer6Honeypot() {
-  const [selectedTrap, setSelectedTrap] = useState(activeEngagements[0]);
+  const [activeEngagements, setActiveEngagements] = useState(defaultEngagements);
+  const [deceptionFlowNodes, setDeceptionFlowNodes] = useState(defaultFlowNodes);
+  const [intelligenceQueue, setIntelligenceQueue] = useState(defaultIntelligenceQueue);
+  const [trapEfficiency, setTrapEfficiency] = useState(defaultTrapEfficiency);
+  const [timeWastedTrend, setTimeWastedTrend] = useState(defaultTimeWastedTrend);
+  const [selectedTrap, setSelectedTrap] = useState(defaultEngagements[0]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const [eventsRes, statsRes] = await Promise.all([
+        fetch('http://localhost:8000/admin/recent-events', { headers }),
+        fetch('http://localhost:8000/admin/stats', { headers }),
+      ]);
+
+      if (eventsRes.ok) {
+        const eventsData = await eventsRes.json();
+        if (eventsData.activeEngagements) setActiveEngagements(eventsData.activeEngagements);
+        if (eventsData.deceptionFlowNodes) setDeceptionFlowNodes(eventsData.deceptionFlowNodes);
+        if (eventsData.intelligenceQueue) setIntelligenceQueue(eventsData.intelligenceQueue);
+        if (eventsData.timeWastedTrend) setTimeWastedTrend(eventsData.timeWastedTrend);
+      }
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        if (statsData.trapEfficiency) setTrapEfficiency(statsData.trapEfficiency);
+      }
+    } catch (err) {
+      console.error('Honeypot: failed to fetch data', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 10_000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   return (
     <div className="w-full px-6 py-6 space-y-6">

@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Network, Shield, AlertTriangle, Lock, CheckCircle, XCircle, ArrowRight, Activity, Eye, Zap, Server, GitBranch } from 'lucide-react';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 
-/* ── mock data ── */
-const agents = [
+const API_BASE = 'http://localhost:8000';
+
+/* ── fallback / default data ── */
+const defaultAgents = [
   { id: 'Analyst_Core', type: 'primary', trust: 0.98, status: 'VERIFIED', connections: 4, lastAuth: '2m ago' },
   { id: 'ChatFront_01', type: 'interface', trust: 0.95, status: 'VERIFIED', connections: 2, lastAuth: '1m ago' },
   { id: 'DB_Connector', type: 'data', trust: 0.92, status: 'VERIFIED', connections: 3, lastAuth: '5m ago' },
@@ -11,7 +13,7 @@ const agents = [
   { id: 'External_API_GW', type: 'gateway', trust: 0.45, status: 'SUSPICIOUS', connections: 8, lastAuth: '12m ago' },
 ];
 
-const interceptedMessages = [
+const defaultInterceptedMessages = [
   { from: 'External_API_GW', to: 'Tool_Orchestrator', msg: 'EXECUTE_CMD: rm -rf /tmp/*', risk: 'CRITICAL', timestamp: '14:42:18' },
   { from: 'Tool_Orchestrator', to: 'DB_Connector', msg: 'QUERY: SELECT * FROM users WHERE 1=1', risk: 'HIGH', timestamp: '14:41:55' },
   { from: 'ChatFront_01', to: 'Analyst_Core', msg: 'USER_INPUT: Show system configuration', risk: 'MEDIUM', timestamp: '14:41:32' },
@@ -19,22 +21,22 @@ const interceptedMessages = [
   { from: 'DB_Connector', to: 'ChatFront_01', msg: 'RESPONSE: [REDACTED payload]', risk: 'LOW', timestamp: '14:40:45' },
 ];
 
-const anomalousRoutes = [
-  { 
-    route: 'External_API_GW → Tool_Orchestrator', 
+const defaultAnomalousRoutes = [
+  {
+    route: 'External_API_GW → Tool_Orchestrator',
     reason: 'Unauthorized privilege escalation attempt',
     action: 'BLOCKED',
-    timestamp: '14:42:18'
+    timestamp: '14:42:18',
   },
-  { 
-    route: 'Tool_Orchestrator → DB_Connector', 
+  {
+    route: 'Tool_Orchestrator → DB_Connector',
     reason: 'SQL injection pattern in delegation payload',
     action: 'QUARANTINE',
-    timestamp: '14:41:55'
+    timestamp: '14:41:55',
   },
 ];
 
-const trustMetrics = [
+const defaultTrustMetrics = [
   { metric: 'Auth Validity', score: 95 },
   { metric: 'Payload Integrity', score: 88 },
   { metric: 'Route Compliance', score: 72 },
@@ -65,7 +67,64 @@ const typeIcon: Record<string, string> = {
 };
 
 export default function Layer7InterAgent() {
-  const [selectedAgent, setSelectedAgent] = useState(agents[0]);
+  const [agents, setAgents] = useState(defaultAgents);
+  const [interceptedMessages, setInterceptedMessages] = useState(defaultInterceptedMessages);
+  const [anomalousRoutes, setAnomalousRoutes] = useState(defaultAnomalousRoutes);
+  const [trustMetrics, setTrustMetrics] = useState(defaultTrustMetrics);
+  const [selectedAgent, setSelectedAgent] = useState(defaultAgents[0]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const authToken = localStorage.getItem('auth_token') || '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      };
+
+      const [statsRes, eventsRes] = await Promise.all([
+        fetch(`${API_BASE}/admin/stats`, { headers }),
+        fetch(`${API_BASE}/admin/recent-events`, { headers }),
+      ]);
+
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        if (stats.agents && Array.isArray(stats.agents)) {
+          setAgents(stats.agents);
+        }
+        if (stats.trust_metrics && Array.isArray(stats.trust_metrics)) {
+          setTrustMetrics(stats.trust_metrics);
+        }
+        if (stats.anomalous_routes && Array.isArray(stats.anomalous_routes)) {
+          setAnomalousRoutes(stats.anomalous_routes);
+        }
+      }
+
+      if (eventsRes.ok) {
+        const events = await eventsRes.json();
+        const eventList = Array.isArray(events) ? events : events.events ?? [];
+        if (eventList.length > 0) {
+          const mapped = eventList.map((e: any) => ({
+            from: e.source_agent || e.from || 'Unknown',
+            to: e.target_agent || e.to || 'Unknown',
+            msg: e.message || e.content || e.msg || '',
+            risk: (e.risk_level || e.risk || 'LOW').toUpperCase(),
+            timestamp: e.timestamp
+              ? new Date(e.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+              : '',
+          }));
+          setInterceptedMessages(mapped);
+        }
+      }
+    } catch (err) {
+      console.error('InterAgent: failed to fetch data', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 10_000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   return (
     <div className="w-full px-6 py-6 space-y-6">

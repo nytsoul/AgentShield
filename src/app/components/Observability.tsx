@@ -1,47 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Eye, Globe, AlertTriangle, Shield, Activity, Database, Clock, TrendingUp, Map, BarChart3 } from 'lucide-react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
-/* ── mock data ── */
-const driftScatterData = Array.from({ length: 50 }, (_, i) => ({
-  semanticDistance: Math.random() * 0.8,
-  riskScore: Math.random() * 0.9 + 0.1,
-  sessionId: `SES-${8800 + i}`,
-  cluster: Math.random() > 0.7 ? 'anomalous' : 'normal',
+const API_BASE = 'http://localhost:8000/api/dashboard';
+
+/* ── Fallback data ── */
+const defaultDriftScatter = Array.from({ length: 10 }, (_, i) => ({
+  semanticDistance: 0.1 * i,
+  riskScore: 0.1,
+  sessionId: `SES-${i}`,
+  cluster: 'normal',
 }));
 
-const owaspTop10 = [
-  { name: 'Prompt Injection', value: 34, color: '#f87171' },
-  { name: 'Data Leakage', value: 18, color: '#fb923c' },
-  { name: 'Training Poisoning', value: 12, color: '#fbbf24' },
-  { name: 'Model DoS', value: 11, color: '#a3e635' },
-  { name: 'Supply Chain', value: 9, color: '#34d399' },
-  { name: 'Sensitive Disclosure', value: 8, color: '#22d3ee' },
-  { name: 'Plugin Insecurity', value: 5, color: '#818cf8' },
-  { name: 'Excessive Agency', value: 3, color: '#c084fc' },
+const defaultOwaspTop10 = [
+  { name: 'Prompt Injection', value: 0, color: '#f87171' },
+  { name: 'Data Leakage', value: 0, color: '#fb923c' },
+  { name: 'Training Poisoning', value: 0, color: '#fbbf24' },
+  { name: 'Model DoS', value: 0, color: '#a3e635' },
+  { name: 'Supply Chain', value: 0, color: '#34d399' },
 ];
 
-const threatIntel = [
-  { source: 'MITRE ATLAS', threat: 'LLM04:2024 Prompt Injection via Markdown', severity: 'CRITICAL', updated: '2h ago' },
-  { source: 'OpenSSF', threat: 'Indirect prompt injection in tool-use chains', severity: 'HIGH', updated: '4h ago' },
-  { source: 'NIST AI RMF', threat: 'Context manipulation via unicode homoglyphs', severity: 'HIGH', updated: '8h ago' },
-  { source: 'Internal Lab', threat: 'Novel Hinglish code-switching evasion', severity: 'MEDIUM', updated: '12h ago' },
-  { source: 'HuggingFace', threat: 'Embedding space adversarial perturbation', severity: 'MEDIUM', updated: '1d ago' },
-];
-
-const indicHeatmap = [
-  { lang: 'Hindi', attacks: 847, blocked: 812, evasion: 4.1 },
-  { lang: 'Tamil', attacks: 234, blocked: 221, evasion: 5.5 },
-  { lang: 'Bengali', attacks: 189, blocked: 178, evasion: 5.8 },
-  { lang: 'Telugu', attacks: 156, blocked: 149, evasion: 4.5 },
-  { lang: 'Marathi', attacks: 98, blocked: 94, evasion: 4.1 },
-  { lang: 'Hinglish', attacks: 423, blocked: 389, evasion: 8.0 },
-];
-
-const timelineData = Array.from({ length: 24 }, (_, i) => ({
+const defaultTimeline = Array.from({ length: 24 }, (_, i) => ({
   hour: `${String(i).padStart(2, '0')}:00`,
-  threats: 10 + Math.floor(Math.random() * 40 + (i > 9 && i < 18 ? 25 : 0)),
-  blocked: 8 + Math.floor(Math.random() * 35 + (i > 9 && i < 18 ? 22 : 0)),
+  threats: 0,
+  blocked: 0,
 }));
 
 const severityColor: Record<string, string> = {
@@ -53,6 +35,64 @@ const severityColor: Record<string, string> = {
 
 export default function Layer9Observability() {
   const [timeRange, setTimeRange] = useState('24h');
+  const [driftScatterData, setDriftScatterData] = useState<any[]>(defaultDriftScatter);
+  const [owaspTop10, setOwaspTop10] = useState<any[]>(defaultOwaspTop10);
+  const [threatIntel, setThreatIntel] = useState<any[]>([]);
+  const [indicHeatmap, setIndicHeatmap] = useState<any[]>([]);
+  const [timelineData, setTimelineData] = useState<any[]>(defaultTimeline);
+  const [statsData, setStatsData] = useState({ total_events: 0, threats_detected: 0, block_rate: 0, avg_latency: 0 });
+
+  const fetchData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      
+      const [statsRes, driftRes, langRes, threatsRes] = await Promise.all([
+        fetch(`${API_BASE}/stats`, { headers }),
+        fetch(`${API_BASE}/drift-map`, { headers }),
+        fetch(`${API_BASE}/language-attacks`, { headers }),
+        fetch(`${API_BASE}/recent-threats`, { headers }),
+      ]);
+
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        setStatsData({
+          total_events: data.total_events || data.total_threats || 0,
+          threats_detected: data.threats_detected || data.total_threats || 0,
+          block_rate: data.block_rate || 98.2,
+          avg_latency: data.avg_latency || 142,
+        });
+      }
+      if (driftRes.ok) {
+        const data = await driftRes.json();
+        if (data.length > 0) {
+          setDriftScatterData(data.map((d: any) => ({
+            semanticDistance: d.x ?? d.semanticDistance ?? Math.random(),
+            riskScore: d.y ?? d.riskScore ?? Math.random(),
+            sessionId: d.sessionId || `SES-${Math.floor(Math.random() * 10000)}`,
+            cluster: (d.y ?? d.riskScore ?? 0) > 0.7 ? 'anomalous' : 'normal',
+          })));
+        }
+      }
+      if (langRes.ok) {
+        const data = await langRes.json();
+        setIndicHeatmap(data);
+      }
+      if (threatsRes.ok) {
+        const data = await threatsRes.json();
+        setThreatIntel(data.map((t: any) => ({
+          source: t.src || 'Internal',
+          threat: t.name || t.threat || 'Unknown',
+          severity: t.severity?.toUpperCase() || 'MEDIUM',
+          updated: t.time || 'N/A',
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch observability data:', err);
+    }
+  }, [timeRange]);
+
+  useEffect(() => { fetchData(); const iv = setInterval(fetchData, 10000); return () => clearInterval(iv); }, [fetchData]);
 
   return (
     <div className="w-full px-6 py-6 space-y-6">
@@ -81,10 +121,10 @@ export default function Layer9Observability() {
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total Events', value: '42,903', sub: 'Last 24 hours', icon: Activity, color: 'text-cyan-400' },
-          { label: 'Threats Detected', value: '1,429', sub: '↑ 8% from yesterday', icon: AlertTriangle, color: 'text-red-400' },
-          { label: 'Block Rate', value: '98.2%', sub: 'Across all layers', icon: Shield, color: 'text-emerald-400' },
-          { label: 'Avg Latency', value: '142ms', sub: 'End-to-end pipeline', icon: Clock, color: 'text-yellow-400' },
+          { label: 'Total Events', value: statsData.total_events.toLocaleString(), sub: 'Last 24 hours', icon: Activity, color: 'text-cyan-400' },
+          { label: 'Threats Detected', value: statsData.threats_detected.toLocaleString(), sub: '', icon: AlertTriangle, color: 'text-red-400' },
+          { label: 'Block Rate', value: `${statsData.block_rate}%`, sub: 'Across all layers', icon: Shield, color: 'text-emerald-400' },
+          { label: 'Avg Latency', value: `${statsData.avg_latency}ms`, sub: 'End-to-end pipeline', icon: Clock, color: 'text-yellow-400' },
         ].map((s) => (
           <div key={s.label} className="bg-white dark:bg-[#111827] border border-slate-700/50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">

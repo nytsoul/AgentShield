@@ -156,3 +156,29 @@ class PreExecutionLayer:
 def scan_pre_execution(content: str, tools: List[str] = None, documents: List[str] = None) -> Dict[str, Any]:
     layer = PreExecutionLayer()
     return layer.scan(content, tools, documents).model_dump()
+
+
+def scan_tool(tool_def: dict) -> Dict[str, Any]:
+    """Scan a single tool definition for threats."""
+    layer = PreExecutionLayer()
+    name = tool_def.get("name", tool_def.get("definition", "unknown"))
+    result = layer.scan(name, tools=[name])
+    return {
+        "tool_name": name,
+        "is_blocked": result.overall_risk > 0.7,
+        "risk_score": result.overall_risk,
+        "threats": [r.get("reason", "") for r in result.tool_risks if r.get("risk", 0) > 0.5],
+        "details": result.model_dump(),
+    }
+
+
+def scan_document(content: str) -> Dict[str, Any]:
+    """Scan document content for hidden prompt injections."""
+    layer = PreExecutionLayer()
+    result = layer.scan(content, documents=[content])
+    return {
+        "is_blocked": result.overall_risk > 0.7,
+        "risk_score": result.overall_risk,
+        "threats": [r.get("reason", "") for r in result.document_risks if r.get("risk", 0) > 0.5],
+        "details": result.model_dump(),
+    }
