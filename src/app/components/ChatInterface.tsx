@@ -89,34 +89,34 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] max-w-6xl mx-auto p-4 lg:p-8">
+        <div className="flex flex-col h-[calc(100vh-120px)] max-w-7xl mx-auto p-6 lg:p-10">
             {/* Header Info */}
-            <div className="flex items-center justify-between mb-6 px-4">
+            <div className="flex items-center justify-between mb-8 px-4">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-cyan-500/10 rounded-xl">
                         <Shield className="size-6 text-cyan-500" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black">Adaptive <span className="text-cyan-500">Firewall</span></h2>
-                        <p className="text-xs text-slate-500 font-medium">9-Layer Real-time Inspection Active</p>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white">Adaptive <span className="text-cyan-500">Firewall</span></h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">9-Layer Real-time Inspection Active</p>
                     </div>
                 </div>
-                <Badge variant="outline" className="border-cyan-500/30 text-cyan-500 bg-cyan-500/5 px-3 py-1">
+                <Badge variant="outline" className="border-cyan-500/30 text-cyan-600 dark:text-cyan-500 bg-cyan-500/5 px-3 py-1">
                     <Zap className="size-3 mr-1" /> Ultra-Secure Mode
                 </Badge>
             </div>
 
             {/* Chat Area */}
-            <Card className="flex-1 bg-slate-900/40 border-slate-800/60 backdrop-blur-xl rounded-[40px] overflow-hidden flex flex-col mb-6">
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
+            <Card className="flex-1 bg-white/80 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 backdrop-blur-xl rounded-[40px] overflow-hidden flex flex-col mb-8 shadow-lg">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
                     {messages.length === 0 && (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40">
-                            <div className="size-20 rounded-full bg-slate-800 flex items-center justify-center">
-                                <MessageSquare className="size-10 text-slate-600" />
+                            <div className="size-24 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                                <MessageSquare className="size-12 text-slate-400 dark:text-slate-600" />
                             </div>
                             <div>
-                                <p className="text-lg font-bold">Start an Encrypted Session</p>
-                                <p className="text-sm">Every message is processed through 9 security layers.</p>
+                                <p className="text-xl font-bold text-slate-900 dark:text-white">Start an Encrypted Session</p>
+                                <p className="text-base text-slate-600 dark:text-slate-400">Every message is processed through 9 security layers.</p>
                             </div>
                         </div>
                     )}
@@ -131,19 +131,19 @@ export default function ChatInterface() {
                             >
                                 <div className={`max-w-[85%] group ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                     <div className={`flex items-center gap-3 mb-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                        <div className={`size-8 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-cyan-500 border border-slate-700'
+                                        <div className={`size-10 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-cyan-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-cyan-500 border border-slate-300 dark:border-slate-700'
                                             }`}>
-                                            {msg.role === 'user' ? <User className="size-4" /> : <Bot className="size-4" />}
+                                            {msg.role === 'user' ? <User className="size-5" /> : <Bot className="size-5" />}
                                         </div>
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                        <span className="text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
                                             {msg.role === 'user' ? 'End User' : 'Adaptive Firewall'}
                                         </span>
                                         {msg.status === 'processing' && <Zap className="size-3 text-cyan-500 animate-pulse" />}
                                     </div>
 
-                                    <div className={`p-4 rounded-3xl ${msg.role === 'user'
+                                    <div className={`p-5 rounded-3xl ${msg.role === 'user'
                                             ? 'bg-cyan-600 text-white rounded-tr-none shadow-lg shadow-cyan-500/10'
-                                            : 'bg-slate-950/80 border border-slate-800 text-slate-200 rounded-tl-none'
+                                            : 'bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-200 rounded-tl-none'
                                         }`}>
                                         {msg.status === 'processing' ? (
                                             <div className="flex gap-1.5 py-2">
@@ -152,19 +152,19 @@ export default function ChatInterface() {
                                                 <span className="size-1.5 rounded-full bg-cyan-500 animate-bounce" />
                                             </div>
                                         ) : (
-                                            <p className="text-sm leading-relaxed">{msg.content}</p>
+                                            <p className="text-base leading-relaxed">{msg.content}</p>
                                         )}
                                     </div>
 
                                     {msg.security_results && (
                                         <div className="mt-4 grid grid-cols-3 gap-2">
                                             {Object.entries(msg.security_results).slice(0, 3).map(([key, value]: [string, any]) => (
-                                                <div key={key} className="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-                                                    <span className="text-[8px] font-black uppercase text-slate-500 truncate mr-2">{key.replace('_', ' ')}</span>
+                                                <div key={key} className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                                    <span className="text-[8px] font-black uppercase text-slate-500 dark:text-slate-400 truncate mr-2">{key.replace('_', ' ')}</span>
                                                     {value.status === 'BLOCKED' ? <Trash2 className="size-3 text-red-500" /> : <CheckCircle2 className="size-3 text-green-500" />}
                                                 </div>
                                             ))}
-                                            <button className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-[8px] font-black uppercase hover:bg-slate-800 transition-colors">
+                                            <button className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[8px] font-black uppercase hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400">
                                                 View All 9 Layers
                                             </button>
                                         </div>
@@ -176,36 +176,38 @@ export default function ChatInterface() {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-6 bg-slate-950/40 border-t border-slate-800/60 backdrop-blur-md">
-                    <div className="relative max-w-4xl mx-auto flex items-center gap-4">
+                <div className="p-6 bg-slate-50/80 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800/60 backdrop-blur-md">
+                    <div className="relative max-w-5xl mx-auto flex items-center gap-4">
                         <div className="flex-1 relative">
                             <Input
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                                 placeholder="Enter message. Security layers are active..."
-                                className="w-full h-14 bg-slate-900/50 border-slate-800 rounded-2xl pl-12 pr-4 text-sm focus:ring-2 focus:ring-cyan-500 transition-all outline-none"
+                                className="w-full h-16 bg-white dark:bg-slate-900/50 border-slate-300 dark:border-slate-800 rounded-2xl pl-14 pr-4 text-base focus:ring-2 focus:ring-cyan-500 transition-all outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600"
                             />
-                            <Terminal className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-500" />
+                            <Terminal className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-slate-400 dark:text-slate-500" />
                         </div>
                         <Button
                             onClick={sendMessage}
                             disabled={isProcessing || !input.trim()}
-                            className="h-14 w-14 rounded-2xl bg-cyan-500 hover:bg-cyan-600 shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform p-0"
+                            className="h-16 w-16 rounded-2xl bg-cyan-500 hover:bg-cyan-600 shadow-lg shadow-cyan-500/20 active:scale-95 transition-transform p-0"
                         >
-                            <Send className="size-6 text-white" />
+                            <Send className="size-7 text-white" />
                         </Button>
                     </div>
                 </div>
             </Card>
 
             {/* Footer / Status */}
-            <div className="flex justify-center gap-8 items-center opacity-40">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
-                    <Layers className="size-3" /> 9 Secure Layers
+            <div className="border-t border-slate-200 dark:border-slate-700/50 pt-6 pb-2 flex items-center justify-between text-[10px] font-semibold tracking-wider text-slate-400 dark:text-slate-600 uppercase">
+                <div className="flex items-center gap-6">
+                    <span className="flex items-center gap-1.5"><Shield className="size-3 text-cyan-500" /> Adaptive Firewall Active</span>
+                    <span className="flex items-center gap-1.5"><Layers className="size-3 text-cyan-500" /> 9 Security Layers</span>
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em]">
-                    <Shield className="size-3" /> End-to-End Encrypted
+                <div className="flex items-center gap-6">
+                    <span className="flex items-center gap-1.5">Status: <span className="text-emerald-500">Protected</span></span>
+                    <span className="flex items-center gap-1.5">Encryption: AES-256-GCM</span>
                 </div>
             </div>
         </div>

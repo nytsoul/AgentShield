@@ -69,6 +69,7 @@ export default function Root() {
 
   const allNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, phase: 'P1', adminOnly: false },
+    { path: '/chat', label: 'Adaptive Firewall', icon: Shield, phase: 'CHAT', adminOnly: false },
     { path: '/layer2-pre-execution', label: 'MCP Scanner', icon: Cpu, phase: 'P2', adminOnly: true },
     { path: '/layer3-memory', label: 'Memory Firewall', icon: Brain, phase: 'P3', adminOnly: true },
     { path: '/layer4-conversation', label: 'Conv Intelligence', icon: Activity, phase: 'P4', adminOnly: true },
