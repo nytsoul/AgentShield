@@ -6,6 +6,10 @@ from api.admin import router as admin_router
 from api.websocket import router as ws_router
 from api.auth_routes import router as auth_router
 from api.layer_routes import router as layer_router
+from api.conversation_routes import router as conversation_router
+from api.dashboard_routes import router as dashboard_router
+from api.memory_routes import router as memory_router
+from api.mcp_scanner_routes import router as mcp_scanner_router
 
 app = FastAPI(
     title="AgentShield - Adaptive LLM Firewall",
@@ -29,6 +33,12 @@ app.include_router(ws_router, prefix="/ws")
 # Auth & Layer API routers
 app.include_router(auth_router)
 app.include_router(layer_router)
+
+# Feature routers
+app.include_router(conversation_router)
+app.include_router(dashboard_router)
+app.include_router(memory_router)
+app.include_router(mcp_scanner_router)
 
 
 @app.get("/health")

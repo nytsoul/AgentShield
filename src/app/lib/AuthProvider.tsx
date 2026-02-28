@@ -36,16 +36,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Helper to resolve role from profiles table
+    const fetchProfileRole = async (userId: string): Promise<UserRole> => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single();
+        if (!error && data?.role) return data.role as UserRole;
+      } catch { /* fall through */ }
+      return (localStorage.getItem('agentshield-role') as UserRole) || 'user';
+    };
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
 
       if (s?.user) {
-        // Read role from user_metadata first, then localStorage fallback
-        const metaRole = s.user.user_metadata?.role as UserRole | undefined;
-        const storedRole = localStorage.getItem('agentshield-role') as UserRole | null;
-        const resolvedRole = metaRole || storedRole || 'user';
+        const resolvedRole = await fetchProfileRole(s.user.id);
         setRoleState(resolvedRole);
         localStorage.setItem('agentshield-role', resolvedRole);
       }
@@ -54,14 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
 
       if (s?.user) {
-        const metaRole = s.user.user_metadata?.role as UserRole | undefined;
-        const storedRole = localStorage.getItem('agentshield-role') as UserRole | null;
-        const resolvedRole = metaRole || storedRole || 'user';
+        const resolvedRole = await fetchProfileRole(s.user.id);
         setRoleState(resolvedRole);
         localStorage.setItem('agentshield-role', resolvedRole);
       } else {

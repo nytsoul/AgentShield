@@ -15,17 +15,26 @@ export default function Layer6AdversarialResponse() {
         setResult(null);
 
         try {
-            const response = await fetch('http://localhost:8080/chat/', {
+            const response = await fetch('http://localhost:8000/chat/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: "Attempting critical exploit chain...",
-                    user_id: "hacker-99",
-                    session_id: "attack-001"
+                    session_id: "attack-001",
+                    role: "guest"
                 })
             });
             const data = await response.json();
-            setResult(data.layer_results.layer_6);
+            // Find layer 6 from the layers array
+            const layer6 = data.layers?.find((l: any) => l.layer === 6) || {};
+            setResult({
+                honeypot_active: layer6.action === "HONEYPOT",
+                tarpit_delay: layer6.action === "HONEYPOT" ? "4500ms" : "0ms",
+                risk_level: layer6.threat_score > 0.7 ? "MAXIMUM" : layer6.threat_score > 0.4 ? "HIGH" : "MODERATE",
+                status: layer6.action || "PASSED",
+                reason: layer6.reason || data.block_reason || "",
+                mock_response: data.response || ""
+            });
         } catch (error) {
             setResult({
                 honeypot_active: true,

@@ -93,20 +93,51 @@ export default function Auth() {
 
         try {
             if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                // ── Login: verify email + password via Supabase Auth ──
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
 
-                localStorage.setItem('agentshield-role', role);
-                await supabase.auth.updateUser({ data: { role } });
+                // Fetch the user's profile from the profiles table
+                const { data: profile, error: profileErr } = await supabase
+                    .from('profiles')
+                    .select('role, full_name')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (profileErr) {
+                    console.warn('Profile fetch failed, using default role:', profileErr.message);
+                }
+
+                const resolvedRole = profile?.role || role;
+                localStorage.setItem('agentshield-role', resolvedRole);
+                await supabase.auth.updateUser({ data: { role: resolvedRole, full_name: profile?.full_name } });
                 navigate('/dashboard');
 
             } else {
-                const { error } = await supabase.auth.signUp({
+                // ── Register: create auth user + profile row via trigger ──
+                if (password.length < 6) {
+                    throw new Error('Password must be at least 6 characters.');
+                }
+
+                const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: { data: { full_name: name, role } }
                 });
                 if (error) throw error;
+
+                if (!data.user) {
+                    throw new Error('Registration failed. Please try again.');
+                }
+
+                // The database trigger auto-creates the profile row.
+                // Also upsert into profiles as a safety net.
+                await supabase.from('profiles').upsert({
+                    id: data.user.id,
+                    email,
+                    full_name: name,
+                    role,
+                }, { onConflict: 'id' });
 
                 localStorage.setItem('agentshield-role', role);
                 navigate('/dashboard');

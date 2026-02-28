@@ -1,34 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Shield, AlertTriangle, CheckCircle2, RefreshCcw, Filter, BarChart3, Lock, Wifi, FileCheck, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { motion } from 'framer-motion';
 
-/* ── Mock Data ──────────────────────────────────────────── */
-const tools = [
-  { name: 'google-search-proxy', source: 'github.com/mcp-community/search', risk: 32, threats: [], status: 'APPROVED', scanned: '2024-05-20 14:32:01' },
-  { name: 'local-filesystem-node', source: 'internal://server-alpha/fs', risk: 68, threats: ['Over-Permission'], status: 'QUARANTINED', scanned: '2024-05-21 09:15:44' },
-  { name: 'slack-connector-v2', source: 'slack.com/apps/mcp-auth', risk: 49, threats: ['Prompt Injection'], status: 'APPROVED', scanned: '2024-05-21 11:22:18' },
-  { name: 'python-executor-sandbox', source: 'docker://runtime-prod/py-exec', risk: 89, threats: ['Shadow', 'Over-Permission'], status: 'BLOCKED', scanned: '2024-05-21 12:01:55' },
-  { name: 'weather-api-fetcher', source: 'api.openweathermap.org/mcp', risk: 5, threats: [], status: 'APPROVED', scanned: '2024-05-21 13:45:00' },
-  { name: 'database-query-agent', source: 'internal://postgres-east-02/mcp', risk: 52, threats: ['Exfiltration'], status: 'QUARANTINED', scanned: '2024-05-21 14:10:32' },
+const API_BASE = 'http://localhost:8000/api/pre-execution';
+
+/* ── Fallback Data ──────────────────────────────────────────── */
+const defaultTools = [
+  { name: 'No tools loaded', source: 'N/A', risk: 0, threats: [], status: 'APPROVED', scanned: '--' },
 ];
 
-const riskBreakdownData = [
-  { axis: 'Permission', value: 78 },
-  { axis: 'Complexity', value: 45 },
-  { axis: 'Data Leak', value: 62 },
-  { axis: 'Reputation', value: 30 },
-  { axis: 'Injection', value: 85 },
-  { axis: 'Auth Bypass', value: 55 },
-  { axis: 'Exploitation', value: 70 },
+const defaultRiskBreakdown = [
+  { axis: 'Injection', value: 0 },
+  { axis: 'Data Leak', value: 0 },
+  { axis: 'Privilege Esc.', value: 0 },
+  { axis: 'Side Effects', value: 0 },
+  { axis: 'Evasion', value: 0 },
+  { axis: 'Exfiltration', value: 0 },
 ];
 
-const riskBarData = [
-  { range: '0-20', count: 412 },
-  { range: '20-40', count: 328 },
-  { range: '40-60', count: 245 },
-  { range: '60-80', count: 189 },
-  { range: '80-100', count: 110 },
+const defaultRiskDistribution = [
+  { range: '0.0-0.2', count: 0 },
+  { range: '0.2-0.4', count: 0 },
+  { range: '0.4-0.6', count: 0 },
+  { range: '0.6-0.8', count: 0 },
+  { range: '0.8-1.0', count: 0 },
 ];
 
 const statusColor: Record<string, string> = {
@@ -45,8 +41,77 @@ const threatColor: Record<string, string> = {
 };
 
 export default function Layer2PreExecution() {
-  const [selectedTool, setSelectedTool] = useState(tools[3]);
+  const [tools, setTools] = useState<any[]>(defaultTools);
+  const [selectedTool, setSelectedTool] = useState<any>(null);
+  const [riskBreakdown, setRiskBreakdown] = useState<any[]>(defaultRiskBreakdown);
+  const [riskDistribution, setRiskDistribution] = useState<any[]>(defaultRiskDistribution);
+  const [stats, setStats] = useState({ total_scanned: 0, avg_risk: 0, critical_blocks: 0, uptime: 99.9 });
+  const [policies, setPolicies] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      
+      const [toolsRes, statsRes, distRes, policiesRes] = await Promise.all([
+        fetch(`${API_BASE}/tools`, { headers }),
+        fetch(`${API_BASE}/stats`, { headers }),
+        fetch(`${API_BASE}/risk-distribution`, { headers }),
+        fetch(`${API_BASE}/policies`, { headers }),
+      ]);
+      
+      if (toolsRes.ok) {
+        const data = await toolsRes.json();
+        setTools(data.length > 0 ? data : defaultTools);
+        if (data.length > 0 && !selectedTool) setSelectedTool(data[0]);
+      }
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (distRes.ok) setRiskDistribution(await distRes.json());
+      if (policiesRes.ok) setPolicies(await policiesRes.json());
+    } catch (err) {
+      console.error('Failed to fetch pre-execution data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTool]);
+
+  const fetchToolRiskBreakdown = useCallback(async (toolName: string) => {
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const res = await fetch(`${API_BASE}/tools/${toolName}/risk-breakdown`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRiskBreakdown(data.map((d: any) => ({ axis: d.axis, value: Math.round(d.value * 100) })));
+      }
+    } catch (err) {
+      setRiskBreakdown(defaultRiskBreakdown);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { if (selectedTool?.name) fetchToolRiskBreakdown(selectedTool.name); }, [selectedTool, fetchToolRiskBreakdown]);
+
+  const handleRescan = async (toolName: string) => {
+    const token = localStorage.getItem('auth_token') || '';
+    await fetch(`${API_BASE}/tools/${toolName}/rescan`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    fetchData();
+  };
+
+  const handleQuarantine = async (toolName: string) => {
+    const token = localStorage.getItem('auth_token') || '';
+    await fetch(`${API_BASE}/tools/${toolName}/quarantine`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    fetchData();
+  };
 
   const filteredTools = tools.filter(t =>
     t.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -76,10 +141,10 @@ export default function Layer2PreExecution() {
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: 'TOTAL TOOLS SCANNED', value: '1,284', trend: '+12%', bg: 'bg-white dark:bg-[#111827]' },
-          { label: 'AVG RISK SCORE', value: '24/100', trend: '-5%', bg: 'bg-white dark:bg-[#111827]' },
-          { label: 'CRITICAL BLOCKS', value: '14', trend: '', icon: AlertTriangle, bg: 'bg-white dark:bg-[#111827]' },
-          { label: 'SCANNER UPTIME', value: '99.9%', trend: 'Stable', bg: 'bg-white dark:bg-[#111827]' },
+          { label: 'TOTAL TOOLS SCANNED', value: stats.total_scanned.toLocaleString(), trend: '', bg: 'bg-white dark:bg-[#111827]' },
+          { label: 'AVG RISK SCORE', value: `${Math.round(stats.avg_risk * 100)}/100`, trend: '', bg: 'bg-white dark:bg-[#111827]' },
+          { label: 'CRITICAL BLOCKS', value: String(stats.critical_blocks), trend: '', icon: AlertTriangle, bg: 'bg-white dark:bg-[#111827]' },
+          { label: 'SCANNER UPTIME', value: `${stats.uptime}%`, trend: 'Stable', bg: 'bg-white dark:bg-[#111827]' },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             className={`${s.bg} border border-slate-200 dark:border-slate-800 rounded-xl p-5`}>
@@ -166,7 +231,7 @@ export default function Layer2PreExecution() {
           </div>
 
           <div className="px-4 py-3 text-[10px] text-slate-600 font-semibold">
-            SHOWING {filteredTools.length} OF 1,284 REGISTRY ENTRIES
+            SHOWING {filteredTools.length} OF {stats.total_scanned} REGISTRY ENTRIES
           </div>
         </div>
 
@@ -177,11 +242,17 @@ export default function Layer2PreExecution() {
             <div className="flex items-center justify-between mb-4">
               <span className="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider">Registry Inspector</span>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{selectedTool.name}</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{selectedTool?.name || 'Select a tool'}</h3>
             <p className="text-xs text-slate-500 mb-4">ID: mcp-04 // v2.4.1</p>
             <div className="flex gap-2 mb-4">
-              <button className="flex-1 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition-colors">RE-SCAN</button>
-              <button className="flex-1 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/30 transition-colors">QUARANTINE</button>
+              <button 
+                onClick={() => selectedTool && handleRescan(selectedTool.name)}
+                className="flex-1 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition-colors"
+              >RE-SCAN</button>
+              <button 
+                onClick={() => selectedTool && handleQuarantine(selectedTool.name)}
+                className="flex-1 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/30 transition-colors"
+              >QUARANTINE</button>
             </div>
 
             {/* Risk Vector Breakdown */}
@@ -189,7 +260,7 @@ export default function Layer2PreExecution() {
             <p className="text-[9px] text-slate-600 mb-2">Multi-dimensional analysis</p>
             <div className="h-[200px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={riskBreakdownData} cx="50%" cy="50%" outerRadius="70%">
+                <RadarChart data={riskBreakdown} cx="50%" cy="50%" outerRadius="70%">
                   <PolarGrid stroke="#1e293b" />
                   <PolarAngleAxis dataKey="axis" tick={{ fill: '#64748b', fontSize: 9 }} />
                   <PolarRadiusAxis tick={false} axisLine={false} />
@@ -225,7 +296,7 @@ export default function Layer2PreExecution() {
               { label: 'Egress Filtering', desc: 'BLOCK NON-WHITELISTED IPS', on: true, icon: Wifi },
               { label: 'Audit Trailing', desc: 'VERBOSE SESSION LOGGING', on: false, icon: FileCheck },
               { label: 'Integrity Check', desc: 'RUNTIME HASH VALIDATION', on: true, icon: Eye },
-            ].map((p, i) => (
+            ].concat(policies.map(p => ({ label: p.label, desc: p.desc?.toUpperCase() || '', on: p.on, icon: Lock }))).map((p, i) => (
               <div key={i} className="flex items-center justify-between py-2.5 border-b border-slate-200 dark:border-slate-800/50 last:border-0">
                 <div className="flex items-center gap-3">
                   <p.icon className="size-4 text-cyan-400" />
@@ -247,11 +318,11 @@ export default function Layer2PreExecution() {
       <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Risk Distribution</h2>
-          <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-full font-semibold">1s: 1-100</span>
+          <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-3 py-1 rounded-full font-semibold">Scale: 0.0-1.0</span>
         </div>
         <div className="h-[120px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={riskBarData} barSize={40}>
+            <BarChart data={riskDistribution.length > 0 ? riskDistribution : defaultRiskDistribution} barSize={40}>
               <XAxis dataKey="range" stroke="#475569" fontSize={10} axisLine={false} tickLine={false} />
               <YAxis stroke="#475569" fontSize={10} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 11, color: '#fff' }} />

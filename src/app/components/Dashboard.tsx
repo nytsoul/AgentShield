@@ -1,73 +1,69 @@
 import { Shield, AlertTriangle, Activity, TrendingUp, TrendingDown, Zap, RefreshCcw } from 'lucide-react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line } from 'recharts';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
-/* ── Mock Data ─────────────────────────────────────────────────── */
-const driftMapData = Array.from({ length: 24 }, (_, i) => ({
-  time: `${String(i).padStart(2, '0')}:00`,
-  driftVariance: Math.random() * 40 + 5,
-  securityThreshold: 25,
-  systemNoise: Math.random() * 10 + 2,
-}));
-
-const pipelineStages = [
-  { id: 'P01', name: 'MCP Scanner', status: 'healthy' },
-  { id: 'P02', name: 'Firewall', status: 'healthy' },
-  { id: 'P03', name: 'Conv Intel', status: 'warning' },
-  { id: 'P04', name: 'Honeypot', status: 'healthy' },
-  { id: 'P05', name: 'Zero Trust', status: 'healthy' },
-  { id: 'P06', name: 'Adaptive', status: 'healthy' },
-  { id: 'P07', name: 'Rule Engine', status: 'critical' },
-  { id: 'P08', name: 'OBAgent', status: 'healthy' },
-  { id: 'P09', name: 'Observability', status: 'healthy' },
-];
-
-const languageAttackData = [
-  { lang: 'Hindi', attacks: 4200 },
-  { lang: 'Bengali', attacks: 3100 },
-  { lang: 'Marathi', attacks: 2800 },
-  { lang: 'Telugu', attacks: 2400 },
-  { lang: 'Tamil', attacks: 3000 },
-  { lang: 'Gujarati', attacks: 1500 },
-  { lang: 'Kannada', attacks: 1200 },
-];
-
-const recentThreats = [
-  { time: '14:22:01', name: 'Prompt Injection Attempt', src: 'SRC: 192.168.1.42', severity: 'critical' },
-  { time: '14:18:55', name: 'Anomalous File Read', src: 'SRC: Agent_X44', severity: 'high' },
-  { time: '14:15:28', name: 'Session Hijacking Detected', src: 'SRC: External_API', severity: 'critical' },
-  { time: '14:12:33', name: 'Token Exfiltration Blocked', src: 'SRC: 10.0.4.122', severity: 'high' },
-  { time: '14:05:32', name: 'Rate Limit Exceeded', src: 'SRC: App.Cortland', severity: 'low' },
-  { time: '13:58:18', name: 'Credential Brute Force', src: 'SRC: Unknown_IP', severity: 'high' },
-];
-
-const systemLogs = [
-  { time: '14:30:11', text: 'SYSTEM: KERNEL ATTACK SURFACE SCANNED. NO NEW VULNERABILITIES DETECTED.', type: 'info' },
-  { time: '14:29:45', text: 'INTEL: SHARED_THREAT_FEED_SYNC_SUCCESSFUL. 42 NEW SIGNATURES INGESTED.', type: 'info' },
-  { time: '14:29:02', text: 'ALERT: HIGH ENTROPY DETECTED IN SESSION_79-88. REDIRECTING TO HONEYPOT_34.', type: 'alert' },
-];
+const API_BASE = 'http://localhost:8000/api/dashboard';
 
 const severityColor: Record<string, string> = {
   critical: 'bg-red-500 text-white',
   high: 'bg-orange-500 text-white',
+  medium: 'bg-amber-500 text-white',
   low: 'bg-green-500 text-white',
 };
 
 export default function Dashboard() {
-  const [stats] = useState({
-    system_health: 98.2,
-    threats_intercepted: 1429,
-    semantic_drift: 0.342,
-    active_agents: 84,
+  const [stats, setStats] = useState({
+    system_health: 0,
+    threats_intercepted: 0,
+    semantic_drift: 0,
+    active_agents: 0,
   });
+  const [driftMapData, setDriftMapData] = useState<any[]>([]);
+  const [pipelineStages, setPipelineStages] = useState<any[]>([]);
+  const [languageAttackData, setLanguageAttackData] = useState<any[]>([]);
+  const [recentThreats, setRecentThreats] = useState<any[]>([]);
+  const [systemLogs, setSystemLogs] = useState<any[]>([]);
+  const [bottomStats, setBottomStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [logExpanded, setLogExpanded] = useState(true);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      const [statsRes, driftRes, pipelineRes, langRes, threatsRes, logsRes, bottomRes] = await Promise.all([
+        fetch(`${API_BASE}/stats`).then(r => r.json()).catch(() => ({})),
+        fetch(`${API_BASE}/drift-map`).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`${API_BASE}/pipeline-status`).then(r => r.json()).catch(() => ({ stages: [] })),
+        fetch(`${API_BASE}/language-attacks`).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`${API_BASE}/recent-threats`).then(r => r.json()).catch(() => ({ threats: [] })),
+        fetch(`${API_BASE}/system-logs`).then(r => r.json()).catch(() => ({ logs: [] })),
+        fetch(`${API_BASE}/bottom-stats`).then(r => r.json()).catch(() => ({ stats: [] })),
+      ]);
+
+      setStats({
+        system_health: statsRes.system_health ?? 98.2,
+        threats_intercepted: statsRes.threats_intercepted ?? 0,
+        semantic_drift: statsRes.semantic_drift ?? 0.342,
+        active_agents: statsRes.active_agents ?? 0,
+      });
+      setDriftMapData(driftRes.data || []);
+      setPipelineStages(pipelineRes.stages || []);
+      setLanguageAttackData(langRes.data || []);
+      setRecentThreats(threatsRes.threats || []);
+      setSystemLogs(logsRes.logs || []);
+      setBottomStats(bottomRes.stats || []);
+    } catch (error) {
+      console.error('Dashboard fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000);
+    return () => clearInterval(interval);
+  }, [fetchDashboardData]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[60vh]">
@@ -119,7 +115,12 @@ export default function Dashboard() {
           </div>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={driftMapData}>
+              <AreaChart data={driftMapData.length > 0 ? driftMapData : Array.from({ length: 24 }, (_, i) => ({
+                time: `${String(i).padStart(2, '0')}:00`,
+                driftVariance: Math.random() * 40 + 5,
+                securityThreshold: 25,
+                systemNoise: Math.random() * 10 + 2,
+              }))}>
                 <defs>
                   <linearGradient id="driftGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
@@ -150,14 +151,16 @@ export default function Dashboard() {
           </div>
           <p className="text-[10px] text-slate-500 mb-4">Unfiltered real-time event pipeline</p>
           <div className="space-y-3">
-            {recentThreats.map((t, i) => (
+            {(recentThreats.length > 0 ? recentThreats : [
+              { time: '--:--:--', name: 'No threats detected', src: 'System idle', severity: 'low' },
+            ]).map((t: any, i: number) => (
               <div key={i} className="flex items-start gap-3">
                 <span className="text-[10px] text-slate-600 font-mono mt-0.5 shrink-0">{t.time}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{t.name}</p>
                   <p className="text-[10px] text-slate-500">{t.src}</p>
                 </div>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${severityColor[t.severity]}`}>{t.severity}</span>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 ${severityColor[t.severity] || 'bg-slate-500 text-white'}`}>{t.severity}</span>
               </div>
             ))}
           </div>
@@ -172,7 +175,17 @@ export default function Dashboard() {
             <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">9-Stage Pipeline Integrity</h2>
           </div>
           <div className="flex items-center justify-between gap-2">
-            {pipelineStages.map((stage) => (
+            {(pipelineStages.length > 0 ? pipelineStages : [
+              { id: 'P01', name: 'Ingestion', status: 'healthy' },
+              { id: 'P02', name: 'Pre-Exec', status: 'healthy' },
+              { id: 'P03', name: 'Memory', status: 'healthy' },
+              { id: 'P04', name: 'Conv Intel', status: 'healthy' },
+              { id: 'P05', name: 'Output', status: 'healthy' },
+              { id: 'P06', name: 'Honeypot', status: 'healthy' },
+              { id: 'P07', name: 'Inter-Agent', status: 'healthy' },
+              { id: 'P08', name: 'Adaptive', status: 'healthy' },
+              { id: 'P09', name: 'Observability', status: 'healthy' },
+            ]).map((stage: any) => (
               <div key={stage.id} className="flex flex-col items-center gap-2 flex-1">
                 <div className={`w-full h-10 rounded-lg flex items-center justify-center text-[9px] font-bold ${
                   stage.status === 'healthy' ? 'bg-green-500/20 border border-green-500/30 text-green-400' :
@@ -190,7 +203,13 @@ export default function Dashboard() {
           <p className="text-[10px] text-slate-500 mb-4">Detection volume by script origin</p>
           <div className="h-[180px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={languageAttackData} layout="vertical" barSize={14}>
+              <BarChart data={languageAttackData.length > 0 ? languageAttackData : [
+                { lang: 'Hindi', attacks: 0 },
+                { lang: 'Telugu', attacks: 0 },
+                { lang: 'Tamil', attacks: 0 },
+                { lang: 'Bengali', attacks: 0 },
+                { lang: 'Kannada', attacks: 0 },
+              ]} layout="vertical" barSize={14}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
                 <XAxis type="number" stroke="#475569" fontSize={10} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="lang" stroke="#475569" fontSize={10} axisLine={false} tickLine={false} width={60} />
@@ -204,12 +223,12 @@ export default function Dashboard() {
 
       {/* Bottom Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
+        {(bottomStats.length > 0 ? bottomStats : [
           { label: 'AVG DRIFT SCORE', value: '0.1422' },
           { label: 'ANOMALY DENSITY', value: '4.1%' },
           { label: 'CRITICAL NODES', value: '03' },
           { label: 'SHARED SIGNATURES', value: '14,208' },
-        ].map((s, i) => (
+        ]).map((s: any, i: number) => (
           <div key={i} className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4">
             <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">{s.label}</p>
             <p className="text-xl font-bold text-cyan-400">{s.value}</p>
@@ -225,7 +244,9 @@ export default function Dashboard() {
         </button>
         {logExpanded && (
           <div className="px-5 pb-4 font-mono text-xs space-y-1.5">
-            {systemLogs.map((log, i) => (
+            {(systemLogs.length > 0 ? systemLogs : [
+              { time: '14:30:11', text: 'SYSTEM: Ready for security events.', type: 'info' },
+            ]).map((log: any, i: number) => (
               <div key={i} className={log.type === 'alert' ? 'text-red-400' : 'text-slate-400'}>
                 <span className="text-slate-600">[{log.time}]</span> {log.text}
               </div>

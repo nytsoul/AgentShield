@@ -56,20 +56,31 @@ export default function ChatInterface() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: input,
-                    user_id: "demo-user",
-                    session_id: "chat-session-xyz"
+                    session_id: "chat-session-xyz",
+                    role: "guest"
                 })
             });
 
             const data = await response.json();
+
+            // Transform layers array to layer_results format for security badges
+            const layerResults: Record<string, any> = {};
+            if (data.layers) {
+                data.layers.forEach((l: any) => {
+                    layerResults[`layer_${l.layer}`] = {
+                        action: l.action,
+                        threat_score: l.threat_score
+                    };
+                });
+            }
 
             setMessages(prev => prev.map(m =>
                 m.id === assistantMsgId
                     ? {
                         ...m,
                         content: data.response,
-                        status: data.status === 'BLOCKED' ? 'blocked' : 'secured',
-                        security_results: data.layer_results
+                        status: data.blocked ? 'blocked' : 'secured',
+                        security_results: layerResults
                     }
                     : m
             ));
