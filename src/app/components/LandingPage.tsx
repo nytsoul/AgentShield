@@ -94,7 +94,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white transition-colors">
+    <div className="relative min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white transition-colors scroll-smooth" style={{ scrollBehavior: 'smooth' }}>
       {/* Ambient background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10" aria-hidden="true">
         <div className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-cyan-400/10 dark:bg-cyan-500/5 blur-3xl" />

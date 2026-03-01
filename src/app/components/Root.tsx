@@ -4,7 +4,7 @@ import {
   Cpu, Brain, Activity, Bug, Network,
   RefreshCcw, Layers, Bell, Search, User, ChevronLeft,
   Zap, AlertTriangle, Crosshair, Settings, Sun, Moon,
-  LogOut, CheckCheck
+  LogOut, CheckCheck, ShieldCheck, Server
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../lib/ThemeProvider';
@@ -65,23 +65,37 @@ export default function Root() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate('/auth'); };
+  const handleLogout = async () => {
+    // Clear demo tokens
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('agentshield-role');
+    localStorage.removeItem('agentshield-name');
+    await supabase.auth.signOut();
+    window.location.href = '/auth';
+  };
 
   const allNavItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, phase: 'P1', adminOnly: false },
-    { path: '/chat', label: 'Adaptive Firewall', icon: Shield, phase: 'CHAT', adminOnly: false },
-    { path: '/layer2-pre-execution', label: 'MCP Scanner', icon: Cpu, phase: 'P2', adminOnly: true },
-    { path: '/layer3-memory', label: 'Memory Firewall', icon: Brain, phase: 'P3', adminOnly: true },
-    { path: '/layer4-conversation', label: 'Conv Intelligence', icon: Activity, phase: 'P4', adminOnly: true },
-    { path: '/layer5-honeypot', label: 'Honeypot Tarpit', icon: Crosshair, phase: 'P5', adminOnly: true },
-    { path: '/layer6-adversarial', label: 'Adversarial', icon: Bug, phase: 'P6', adminOnly: true },
-    { path: '/layer7-inter-agent', label: 'Zero Trust', icon: Network, phase: 'P7', adminOnly: true },
-    { path: '/layer8-adaptive', label: 'Rule Engine', icon: RefreshCcw, phase: 'P8', adminOnly: true },
-    { path: '/layer9-observability', label: 'Observability', icon: Layers, phase: 'P9', adminOnly: true },
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, phase: 'CORE', adminOnly: false, userOnly: false },
+    { path: '/chat', label: 'Adaptive Firewall', icon: Shield, phase: 'CHAT', adminOnly: false, userOnly: true },
+    { path: '/layer1-ingestion', label: 'Ingestion Pipeline', icon: Server, phase: 'P1', adminOnly: true, userOnly: false },
+    { path: '/layer2-pre-execution', label: 'MCP Scanner', icon: Cpu, phase: 'P2', adminOnly: true, userOnly: false },
+    { path: '/layer3-memory', label: 'Memory Firewall', icon: Brain, phase: 'P3', adminOnly: true, userOnly: false },
+    { path: '/layer4-conversation', label: 'Conv Intelligence', icon: Activity, phase: 'P4', adminOnly: true, userOnly: false },
+    { path: '/layer5-output', label: 'Output Validation', icon: Shield, phase: 'P5', adminOnly: true, userOnly: false },
+    { path: '/layer5-honeypot', label: 'Honeypot Tarpit', icon: Crosshair, phase: 'P6', adminOnly: true, userOnly: false },
+    { path: '/layer6-adversarial', label: 'Adversarial Response', icon: Bug, phase: 'P7', adminOnly: true, userOnly: false },
+    { path: '/layer7-inter-agent', label: 'Zero Trust Network', icon: Network, phase: 'P8', adminOnly: true, userOnly: false },
+    { path: '/layer8-adaptive', label: 'Adaptive Config', icon: RefreshCcw, phase: 'P9', adminOnly: true, userOnly: false },
+    { path: '/layer9-observability', label: 'Observability', icon: Layers, phase: 'OBS', adminOnly: true, userOnly: false },
+    { path: '/admin', label: 'Admin Console', icon: ShieldCheck, phase: 'ADM', adminOnly: true, userOnly: false },
   ];
 
   // Filter nav items based on user role
-  const navItems = isAdmin ? allNavItems : allNavItems.filter(item => !item.adminOnly);
+  const navItems = isAdmin
+    ? allNavItems.filter(item => !item.userOnly)
+    : allNavItems.filter(item => !item.adminOnly);
 
   if (isLanding || isAuth) return <Outlet />;
 
@@ -90,11 +104,11 @@ export default function Root() {
   };
 
   /* shared theme tokens */
-  const sidebarBg   = 'bg-white dark:bg-[#0d1424]';
-  const borderClr   = 'border-slate-200 dark:border-cyan-500/10';
-  const mainBg      = 'bg-slate-50 dark:bg-[#0a0f1a]';
-  const headerBg    = 'bg-white/95 dark:bg-[#0d1424]/95';
-  const footerBg    = 'bg-white dark:bg-[#0d1424]';
+  const sidebarBg = 'bg-white dark:bg-[#0d1424]';
+  const borderClr = 'border-slate-200 dark:border-cyan-500/10';
+  const mainBg = 'bg-slate-50 dark:bg-[#0a0f1a]';
+  const headerBg = 'bg-white/95 dark:bg-[#0d1424]/95';
+  const footerBg = 'bg-white dark:bg-[#0d1424]';
 
   return (
     <div className={`min-h-screen ${mainBg} text-slate-900 dark:text-slate-100 flex`}>
@@ -276,7 +290,7 @@ export default function Root() {
         </main>
 
         {/* Footer */}
-        <footer className={`border-t ${borderClr} ${footerBg} px-6 py-3 flex items-center justify-between text-[10px] font-semibold tracking-wider text-slate-400 dark:text-slate-600`}>
+        <footer className={`border-t ${borderClr} ${footerBg} px-6 py-6 flex items-center justify-between text-[10px] font-semibold tracking-wider text-slate-400 dark:text-slate-600`}>
           <div className="flex items-center gap-3">
             <span>SYSTEM STATUS: <span className="text-green-500">OPERATIONAL</span></span>
           </div>

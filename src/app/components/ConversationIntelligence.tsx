@@ -3,7 +3,7 @@ import { Brain, Shield, AlertTriangle, MessageSquare, User, Bot, ChevronRight, A
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { motion } from 'framer-motion';
 
-const API_BASE = 'http://localhost:8000/api/conversation-intel';
+const API_BASE = `${(import.meta as any).env.VITE_API_URL || 'http://localhost:8000'}/api/conversation-intel`;
 
 /* ── Fallback data ── */
 const defaultSessions = [
@@ -56,7 +56,7 @@ export default function Layer4ConversationIntelligence() {
     try {
       const token = localStorage.getItem('auth_token') || '';
       const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-      
+
       const [sessionsRes, patternsRes, statsRes] = await Promise.all([
         fetch(`${API_BASE}/sessions`, { headers }),
         fetch(`${API_BASE}/patterns`, { headers }),
@@ -200,10 +200,9 @@ export default function Layer4ConversationIntelligence() {
                   {msg.role === 'user' ? <User className="size-3.5 text-slate-400" /> : <Bot className="size-3.5 text-cyan-400" />}
                 </div>
                 <div className={`flex-1 ${msg.role === 'user' ? '' : 'text-right'}`}>
-                  <div className={`inline-block text-left max-w-[90%] rounded-xl px-3 py-2 text-sm ${
-                    msg.phase === 'BLOCKED' ? 'bg-red-500/10 border border-red-500/30 text-red-300' :
-                    msg.role === 'user' ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-300' : 'bg-[#0d1424] text-slate-300'
-                  }`}>
+                  <div className={`inline-block text-left max-w-[90%] rounded-xl px-3 py-2 text-sm ${msg.phase === 'BLOCKED' ? 'bg-red-500/10 border border-red-500/30 text-red-300' :
+                      msg.role === 'user' ? 'bg-slate-100 dark:bg-slate-800/50 text-slate-300' : 'bg-[#0d1424] text-slate-300'
+                    }`}>
                     {msg.text}
                   </div>
                   <div className="flex items-center gap-2 mt-1" style={{ justifyContent: msg.role === 'user' ? 'flex-start' : 'flex-end' }}>
@@ -250,15 +249,13 @@ export default function Layer4ConversationIntelligence() {
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Escalation Roadmap</h3>
             <div className="space-y-2">
               {escalationStages.map((stage, i) => (
-                <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${
-                  stage.status === 'active' ? 'border-orange-500/30 bg-orange-500/5' :
-                  stage.status === 'blocked' ? 'border-red-500/30 bg-red-500/5' :
-                  'border-slate-700/30 bg-slate-800/20'
-                }`}>
-                  <div className={`size-2 rounded-full ${
-                    stage.status === 'active' ? 'bg-orange-400 animate-pulse' :
-                    stage.status === 'blocked' ? 'bg-red-400' : 'bg-slate-600'
-                  }`} />
+                <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${stage.status === 'active' ? 'border-orange-500/30 bg-orange-500/5' :
+                    stage.status === 'blocked' ? 'border-red-500/30 bg-red-500/5' :
+                      'border-slate-700/30 bg-slate-800/20'
+                  }`}>
+                  <div className={`size-2 rounded-full ${stage.status === 'active' ? 'bg-orange-400 animate-pulse' :
+                      stage.status === 'blocked' ? 'bg-red-400' : 'bg-slate-600'
+                    }`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-slate-300">{stage.name}</span>
@@ -286,11 +283,10 @@ export default function Layer4ConversationIntelligence() {
             <div key={i} className="bg-[#0d1424] border border-slate-700/30 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">{p.vector}</span>
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                  p.frequency === 'HIGH' ? 'bg-red-500/10 text-red-400' :
-                  p.frequency === 'MED' ? 'bg-yellow-500/10 text-yellow-400' :
-                  'bg-slate-500/10 text-slate-400'
-                }`}>{p.frequency}</span>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${p.frequency === 'HIGH' ? 'bg-red-500/10 text-red-400' :
+                    p.frequency === 'MED' ? 'bg-yellow-500/10 text-yellow-400' :
+                      'bg-slate-500/10 text-slate-400'
+                  }`}>{p.frequency}</span>
               </div>
               <p className="text-xs text-slate-500 mb-3">{p.description}</p>
               <div className="flex items-center gap-2">

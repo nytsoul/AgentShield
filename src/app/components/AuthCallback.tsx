@@ -1,56 +1,44 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Shield, Loader2 } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 /**
- * Handles the OAuth redirect from Google (or any provider).
- * Supabase auto-processes the URL hash/code, then we read
- * the user's role from metadata and redirect accordingly.
+ * Default login fallback.
+ * This component checks for an existing Supabase session and redirects the user
+ * based on their role (admin or regular user). It deliberately ignores any
+ * Google OAuth `code` query parameter, providing a simple, reliable login path.
  */
 export default function AuthCallback() {
     const navigate = useNavigate();
+    const [errorMessage, setErrorMessage] = useState<string>('');
 
     useEffect(() => {
-        const handleCallback = async () => {
-            // Wait for Supabase to finish processing the OAuth callback
-            const { data: { session }, error } = await supabase.auth.getSession();
-
-            if (error || !session) {
-                // If something went wrong, go back to auth page
-                navigate('/auth');
-                return;
-            }
-
-            const role = session.user.user_metadata?.role;
-            if (role === 'admin') {
-                navigate('/dashboard');
-            } else {
-                navigate('/chat');
-            }
-        };
-
-        // Listen for the AUTH_CALLBACK event fired after Google redirect
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session) {
+        const handleLogin = async () => {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error || !session) {
+                    console.warn('No session found, redirecting to auth page');
+                    navigate('/auth');
+                    return;
+                }
                 const role = session.user.user_metadata?.role;
                 if (role === 'admin') {
                     navigate('/dashboard');
                 } else {
                     navigate('/chat');
                 }
-            } else if (event === 'SIGNED_OUT') {
+            } catch (err) {
+                console.error('Auth callback error:', err);
+                setErrorMessage('Authentication failed. Please try again.');
                 navigate('/auth');
             }
-        });
-
-        handleCallback();
-
-        return () => subscription.unsubscribe();
+        };
+        handleLogin();
     }, [navigate]);
 
     return (
-        <div className="min-h-screen bg-[#060a13] flex flex-col items-center justify-center gap-6 relative overflow-hidden">
+        <div className="fixed inset-0 bg-[#060a13] flex flex-col items-center justify-center gap-6 relative overflow-hidden">
             {/* Background gradient */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/8 rounded-full blur-[100px]" />
@@ -66,6 +54,9 @@ export default function AuthCallback() {
                 <div className="text-center">
                     <p className="text-white font-bold text-sm mb-1">Verifying credentials</p>
                     <p className="text-slate-500 text-xs">Completing secure authentication…</p>
+                    {errorMessage && (
+                        <p className="text-red-500 text-xs mt-2">{errorMessage}</p>
+                    )}
                 </div>
             </div>
         </div>

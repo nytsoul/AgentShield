@@ -2,7 +2,7 @@ import { Navigate } from 'react-router';
 import { useAuth } from '../lib/AuthProvider';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   adminOnly?: boolean;
 }
 

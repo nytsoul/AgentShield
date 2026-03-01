@@ -14,6 +14,7 @@ import Observability from "./components/Observability";
 import Honeypot from "./components/Honeypot";
 import ChatInterface from "./components/ChatInterface";
 import Settings from "./components/Settings";
+import Admin from "./components/Admin";
 import Auth from "./components/Auth";
 import AuthCallback from "./components/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
       { path: "layer8-adaptive", Component: protect(AdaptiveLearning, true) },
       { path: "layer9-observability", Component: protect(Observability, true) },
       { path: "settings", Component: Settings },
+      { path: "admin", Component: protect(Admin, true) },
     ],
   },
   {

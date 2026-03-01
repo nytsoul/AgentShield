@@ -5,6 +5,7 @@ from api.chat import router as chat_router
 from api.admin import router as admin_router
 from api.websocket import router as ws_router
 from api.auth_routes import router as auth_router
+from api.oauth_routes import router as oauth_router
 from api.layer_routes import router as layer_router
 from api.conversation_routes import router as conversation_router
 from api.dashboard_routes import router as dashboard_router
@@ -32,6 +33,7 @@ app.include_router(ws_router, prefix="/ws")
 
 # Auth & Layer API routers
 app.include_router(auth_router)
+app.include_router(oauth_router)
 app.include_router(layer_router)
 
 # Feature routers

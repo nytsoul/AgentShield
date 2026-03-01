@@ -3,7 +3,7 @@ import { Search, Shield, AlertTriangle, CheckCircle2, RefreshCcw, Filter, BarCha
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { motion } from 'framer-motion';
 
-const API_BASE = 'http://localhost:8000/api/pre-execution';
+const API_BASE = `${(import.meta as any).env.VITE_API_URL || 'http://localhost:8000'}/api/pre-execution`;
 
 /* ── Fallback Data ──────────────────────────────────────────── */
 const defaultTools = [
@@ -54,14 +54,14 @@ export default function Layer2PreExecution() {
     try {
       const token = localStorage.getItem('auth_token') || '';
       const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-      
+
       const [toolsRes, statsRes, distRes, policiesRes] = await Promise.all([
         fetch(`${API_BASE}/tools`, { headers }),
         fetch(`${API_BASE}/stats`, { headers }),
         fetch(`${API_BASE}/risk-distribution`, { headers }),
         fetch(`${API_BASE}/policies`, { headers }),
       ]);
-      
+
       if (toolsRes.ok) {
         const data = await toolsRes.json();
         setTools(data.length > 0 ? data : defaultTools);
@@ -196,9 +196,8 @@ export default function Layer2PreExecution() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.03 }}
                 onClick={() => setSelectedTool(tool)}
-                className={`grid grid-cols-12 px-4 py-3.5 items-center cursor-pointer transition-colors ${
-                  selectedTool.name === tool.name ? 'bg-cyan-500/5 border-l-2 border-cyan-400' : 'hover:bg-slate-50 dark:bg-slate-800/30'
-                }`}
+                className={`grid grid-cols-12 px-4 py-3.5 items-center cursor-pointer transition-colors ${selectedTool?.name === tool.name ? 'bg-cyan-500/5 border-l-2 border-cyan-400' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
+                  }`}
               >
                 <div className="col-span-4">
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">{tool.name}</p>
@@ -218,7 +217,7 @@ export default function Layer2PreExecution() {
                   {tool.threats.length === 0 ? (
                     <span className="text-[10px] text-slate-600">No threats</span>
                   ) : (
-                    tool.threats.map((t, j) => (
+                    tool.threats.map((t: string, j: number) => (
                       <span key={j} className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${threatColor[t] || 'bg-slate-200 dark:bg-slate-700 text-slate-300'}`}>{t}</span>
                     ))
                   )}
@@ -245,11 +244,11 @@ export default function Layer2PreExecution() {
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{selectedTool?.name || 'Select a tool'}</h3>
             <p className="text-xs text-slate-500 mb-4">ID: mcp-04 // v2.4.1</p>
             <div className="flex gap-2 mb-4">
-              <button 
+              <button
                 onClick={() => selectedTool && handleRescan(selectedTool.name)}
                 className="flex-1 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition-colors"
               >RE-SCAN</button>
-              <button 
+              <button
                 onClick={() => selectedTool && handleQuarantine(selectedTool.name)}
                 className="flex-1 py-2 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/30 transition-colors"
               >QUARANTINE</button>
@@ -276,15 +275,15 @@ export default function Layer2PreExecution() {
               <h4 className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Parameter Schema</h4>
               <button className="text-[10px] text-cyan-400 font-semibold">Copy JSON</button>
             </div>
-            <div className="bg-slate-50 dark:bg-[#0a0f1a] rounded-lg p-3 font-mono text-[11px] text-slate-300 overflow-auto max-h-40">
-              <pre>{JSON.stringify({
+            <div className="bg-slate-50 dark:bg-[#0a0f1a] rounded-lg p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-auto max-h-40">
+              <pre>{selectedTool ? JSON.stringify({
                 name: selectedTool.name,
                 version: "1.4.0-stable",
                 permissions: [],
                 "fs.root": "/tmp/sandbox",
                 "net.connect": ".pypi.org",
                 "env.get": "USERNAME"
-              }, null, 2)}</pre>
+              }, null, 2) : '// Select a tool from the list'}</pre>
             </div>
           </div>
 

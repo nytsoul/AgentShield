@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Eye, Globe, AlertTriangle, Shield, Activity, Database, Clock, TrendingUp, Map, BarChart3 } from 'lucide-react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 
-const API_BASE = 'http://localhost:8000/api/dashboard';
+const API_BASE = `${(import.meta as any).env.VITE_API_URL || 'http://localhost:8000'}/api/dashboard`;
 
 /* ── Fallback data ── */
 const defaultDriftScatter = Array.from({ length: 10 }, (_, i) => ({
@@ -46,7 +46,7 @@ export default function Layer9Observability() {
     try {
       const token = localStorage.getItem('auth_token') || '';
       const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-      
+
       const [statsRes, driftRes, langRes, threatsRes] = await Promise.all([
         fetch(`${API_BASE}/stats`, { headers }),
         fetch(`${API_BASE}/drift-map`, { headers }),

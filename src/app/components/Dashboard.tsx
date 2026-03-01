@@ -3,7 +3,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
-const API_BASE = 'http://localhost:8000/api/dashboard';
+const API_BASE = `${(import.meta as any).env.VITE_API_URL || 'http://localhost:8000'}/api/dashboard`;
 
 const severityColor: Record<string, string> = {
   critical: 'bg-red-500 text-white',
@@ -187,11 +187,10 @@ export default function Dashboard() {
               { id: 'P09', name: 'Observability', status: 'healthy' },
             ]).map((stage: any) => (
               <div key={stage.id} className="flex flex-col items-center gap-2 flex-1">
-                <div className={`w-full h-10 rounded-lg flex items-center justify-center text-[9px] font-bold ${
-                  stage.status === 'healthy' ? 'bg-green-500/20 border border-green-500/30 text-green-400' :
-                  stage.status === 'warning' ? 'bg-amber-500/20 border border-amber-500/30 text-amber-400' :
-                  'bg-red-500/20 border border-red-500/30 text-red-400'
-                }`}>{stage.id}</div>
+                <div className={`w-full h-10 rounded-lg flex items-center justify-center text-[9px] font-bold ${stage.status === 'healthy' ? 'bg-green-500/20 border border-green-500/30 text-green-400' :
+                    stage.status === 'warning' ? 'bg-amber-500/20 border border-amber-500/30 text-amber-400' :
+                      'bg-red-500/20 border border-red-500/30 text-red-400'
+                  }`}>{stage.id}</div>
                 <span className="text-[8px] text-slate-500 text-center leading-tight font-semibold">{stage.name}</span>
               </div>
             ))}

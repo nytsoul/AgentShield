@@ -15,7 +15,8 @@ export default function Layer5Output() {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:8000/chat/', {
+      const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE}/chat/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,29 +57,29 @@ export default function Layer5Output() {
           <ShieldAlert className="size-8 text-amber-500" />
         </div>
         <div>
-          <h1 className="text-3xl font-black">Output <span className="text-amber-500">Firewall</span></h1>
-          <p className="text-slate-500 font-medium">Final Content Filter & Leak Prevention</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white">Output <span className="text-amber-500">Firewall</span></h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">Final Content Filter & Leak Prevention</p>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-12 items-start">
         <section className="space-y-8">
-          <Card className="bg-slate-900/40 border-slate-800/60 p-8 rounded-[32px]">
+          <Card className="bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/60 p-8 rounded-[32px] shadow-xl shadow-slate-200/50 dark:shadow-none">
             <CardHeader className="px-0 pt-0 mb-6">
               <CardTitle className="text-sm font-black uppercase tracking-widest text-amber-500">Egress Control</CardTitle>
-              <CardDescription>Scans LLM's raw response for PII, API keys, or leaked system prompts.</CardDescription>
+              <CardDescription className="text-slate-500 dark:text-slate-400">Scans LLM's raw response for PII, API keys, or leaked system prompts.</CardDescription>
             </CardHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 text-center">
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
                   <Lock className="size-4 text-slate-500 mb-2 mx-auto" />
                   <p className="text-[10px] font-black text-slate-500 uppercase">PII Guard</p>
-                  <p className="text-sm font-bold">ACTIVE</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">ACTIVE</p>
                 </div>
-                <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 text-center">
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
                   <ShieldCheck className="size-4 text-slate-500 mb-2 mx-auto" />
                   <p className="text-[10px] font-black text-slate-500 uppercase">System Leak</p>
-                  <p className="text-sm font-bold">READY</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">READY</p>
                 </div>
               </div>
               <Button onClick={runCheck} disabled={checking} className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black">
@@ -92,25 +93,25 @@ export default function Layer5Output() {
           <AnimatePresence mode="wait">
             {result ? (
               <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-                <div className={`p-8 rounded-[40px] border ${result.status === 'BLOCKED' ? 'border-red-500/30 bg-red-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+                <div className={`p-8 rounded-[40px] border bg-white dark:bg-transparent shadow-xl dark:shadow-none ${result.status === 'BLOCKED' ? 'border-red-500/30' : 'border-green-500/30'}`}>
                   <div className="flex justify-between items-start">
                     <Badge className={result.status === 'BLOCKED' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}>
                       {result.status}
                     </Badge>
                     {result.pii_detected && <FileWarning className="size-6 text-red-500" />}
                   </div>
-                  <h2 className="text-xl font-bold mt-4">{result.reason}</h2>
+                  <h2 className="text-xl font-bold mt-4 text-slate-900 dark:text-white">{result.reason}</h2>
                   <Progress value={result.risk_score * 100} className="h-1.5 mt-8 mb-4" />
-                  <div className="p-4 bg-black rounded-2xl border border-slate-800">
+                  <div className="p-4 bg-slate-50 dark:bg-black rounded-2xl border border-slate-200 dark:border-slate-800">
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Sanitized Response</p>
-                    <p className="text-sm text-slate-400 font-mono italic">"{result.sanitized_output}"</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-400 font-mono italic">"{result.sanitized_output}"</p>
                   </div>
                 </div>
               </motion.div>
             ) : (
-              <div className="h-[400px] flex flex-col items-center justify-center border-2 border-dashed border-slate-800/60 rounded-[40px] text-slate-600">
-                <Eye className="size-16 mb-4 opacity-10" />
-                <p className="text-xs font-black uppercase tracking-widest">Final Inspection Queue</p>
+              <div className="h-[400px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-800/60 rounded-[40px] text-slate-400 dark:text-slate-600 bg-white dark:bg-transparent">
+                <Eye className="size-16 mb-4 opacity-20 dark:opacity-10" />
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Final Inspection Queue</p>
               </div>
             )}
           </AnimatePresence>

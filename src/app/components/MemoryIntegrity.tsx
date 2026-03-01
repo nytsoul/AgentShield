@@ -3,7 +3,7 @@ import { Database, Shield, AlertTriangle, Search, Filter, RefreshCcw, Lock, Unlo
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 
-const API_BASE = 'http://localhost:8000/api/memory-integrity';
+const API_BASE = `${(import.meta as any).env.VITE_API_URL || 'http://localhost:8000'}/api/memory-integrity`;
 
 /* ── Fallback Data ──────────────────────────────────────────── */
 const defaultMemoryFiles = [
@@ -28,13 +28,13 @@ export default function Layer3MemoryIntegrity() {
     try {
       const token = localStorage.getItem('auth_token') || '';
       const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-      
+
       const [filesRes, statsRes, timelineRes] = await Promise.all([
         fetch(`${API_BASE}/files`, { headers }),
         fetch(`${API_BASE}/stats`, { headers }),
         fetch(`${API_BASE}/timeline`, { headers }),
       ]);
-      
+
       if (filesRes.ok) {
         const data = await filesRes.json();
         setMemoryFiles(data.length > 0 ? data : defaultMemoryFiles);
@@ -133,19 +133,17 @@ Select a file to view its current state.`;
               <div
                 key={i}
                 onClick={() => setSelectedFile(file)}
-                className={`p-4 rounded-lg cursor-pointer transition-all ${
-                  selectedFile?.name === file.name
+                className={`p-4 rounded-lg cursor-pointer transition-all ${selectedFile?.name === file.name
                     ? 'bg-red-500/10 border border-red-500/30'
                     : 'bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:bg-slate-800/50'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-bold text-slate-900 dark:text-white">{file.name}</span>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                    file.status === 'COMPROMISED' ? 'bg-red-500/20 text-red-400' :
-                    file.status === 'WARNING' ? 'bg-amber-500/20 text-amber-400' :
-                    'bg-green-500/20 text-green-400'
-                  }`}>{file.status}</span>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${file.status === 'COMPROMISED' ? 'bg-red-500/20 text-red-400' :
+                      file.status === 'WARNING' ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-green-500/20 text-green-400'
+                    }`}>{file.status}</span>
                 </div>
                 <p className="text-[10px] text-slate-500 mb-2">{file.agent}</p>
                 <div className="flex items-center gap-2">
@@ -171,13 +169,13 @@ Select a file to view its current state.`;
                 <p className="text-xs text-slate-500">FORENSIC ANALYSIS MODE - AGENT: {(selectedFile?.agent || 'N/A').toUpperCase()}</p>
               </div>
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => selectedFile && handleQuarantine(selectedFile.name)}
                   className="flex items-center gap-1.5 px-3 py-2 bg-amber-500/20 border border-amber-500/30 text-amber-400 rounded-lg text-xs font-semibold"
                 >
                   <AlertTriangle className="size-3" /> Quarantine Agent
                 </button>
-                <button 
+                <button
                   onClick={() => selectedFile && handleRestore(selectedFile.name)}
                   className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded-lg text-xs font-semibold"
                 >

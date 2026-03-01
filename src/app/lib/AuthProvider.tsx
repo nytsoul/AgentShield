@@ -11,6 +11,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isAuthenticated: boolean;
   loading: boolean;
+  isDemoMode: boolean;
   setRole: (role: UserRole) => void;
 }
 
@@ -21,14 +22,29 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isAuthenticated: false,
   loading: true,
-  setRole: () => {},
+  isDemoMode: false,
+  setRole: () => { },
 });
+
+/** Build a lightweight mock User object for demo mode. */
+function buildDemoUser(role: UserRole): User {
+  return {
+    id: role === 'admin' ? 'demo-admin-id' : 'demo-user-id',
+    email: role === 'admin' ? 'admin@example.com' : 'demo_user@example.com',
+    aud: 'authenticated',
+    role: 'authenticated',
+    app_metadata: {},
+    user_metadata: { full_name: role === 'admin' ? 'Demo Admin' : 'Demo User', role },
+    created_at: new Date().toISOString(),
+  } as unknown as User;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRoleState] = useState<UserRole>('user');
   const [loading, setLoading] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const setRole = (newRole: UserRole) => {
     setRoleState(newRole);
@@ -36,7 +52,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Helper to resolve role from profiles table
+    // ── 1. Check for demo token first ──
+    const demoToken = localStorage.getItem('auth_token');
+    if (demoToken?.startsWith('demo-token-')) {
+      const demoRole: UserRole = localStorage.getItem('user_role') === 'admin' ? 'admin' : 'user';
+      const mockUser = buildDemoUser(demoRole);
+      setUser(mockUser);
+      setRoleState(demoRole);
+      setIsDemoMode(true);
+      localStorage.setItem('agentshield-role', demoRole);
+      localStorage.setItem('agentshield-name', mockUser.user_metadata.full_name);
+      setLoading(false);
+      return; // skip Supabase entirely
+    }
+
+    // ── 2. Normal Supabase flow ──
     const fetchProfileRole = async (userId: string): Promise<UserRole> => {
       try {
         const { data, error } = await supabase
@@ -49,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return (localStorage.getItem('agentshield-role') as UserRole) || 'user';
     };
 
-    // Get initial session
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -63,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -73,7 +101,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRoleState(resolvedRole);
         localStorage.setItem('agentshield-role', resolvedRole);
       } else {
-        // Logged out
         setRoleState('user');
         localStorage.removeItem('agentshield-role');
       }
@@ -89,8 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     role,
     isAdmin: role === 'admin',
-    isAuthenticated: !!user,
+    isAuthenticated: !!user || isDemoMode,
     loading,
+    isDemoMode,
     setRole,
   };
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Network, Shield, AlertTriangle, Lock, CheckCircle, XCircle, ArrowRight, Activity, Eye, Zap, Server, GitBranch } from 'lucide-react';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
 
 /* ── fallback / default data ── */
 const defaultAgents = [

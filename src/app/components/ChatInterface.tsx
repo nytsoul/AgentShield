@@ -100,7 +100,7 @@ export default function ChatInterface() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-120px)] max-w-7xl mx-auto p-6 lg:p-10">
+        <div className="flex flex-col h-[calc(100vh-80px)] max-w-7xl mx-auto p-6 lg:p-10">
             {/* Header Info */}
             <div className="flex items-center justify-between mb-8 px-4">
                 <div className="flex items-center gap-3">
