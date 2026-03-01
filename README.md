@@ -1,137 +1,115 @@
-# Google Authentication Debugging Guide
+# 🛡️ AgentShield
 
-## Latest Fix: `requestCredential is not a function`
+> **Production-grade 9-layer AI security middleware with real-time WebSocket events and adaptive defensive protocols.**
 
-### ✅ FIXED (March 1, 2026)
-
-**Error:** `TypeError: window.google.accounts.id.requestCredential is not a function`
-
-**Problem:** The method `requestCredential()` doesn't exist in Google's Sign-In library
-
-**Solution:**
-1. ✅ Changed from `requestCredential()` → `google.accounts.id.prompt()` 
-2. ✅ Added `useCallback` hook for stable callback function
-3. ✅ Improved script loading with proper `onload` callback
-4. ✅ Added fallback to OAuth2 authorization code flow
-5. ✅ Better console logging with emoji indicators (✅ ❌ 📌 📤)
-
-**Expected Console Output:**
-```
-✅ Google GSI script loaded
-✅ Google Sign-In initialized with client ID: 1051549067212-...
-📌 Opening Google One Tap prompt...
-[Google popup appears]
-📌 Received credential response: true
-📤 Sending ID token to backend...
-✅ Successfully authenticated: your_email@gmail.com
-[Redirects to dashboard]
-```
+AgentShield is an advanced AI firewall designed to secure Large Language Model (LLM) applications against adversarial attacks, prompt injections, data exfiltration, and unauthorized agent communication. It implements a complete zero-trust architecture specifically tailored for multi-agent systems and enterprise AI pipelines.
 
 ---
 
-## Previous Fixed Issues
+## 🏗️ The 9-Layer Security Architecture
 
-✅ **Missing google-auth package** - Added `google-auth==2.27.0` to requirements.txt  
-✅ **Improved Auth.tsx script loading** - Now waits for script to load before initializing  
-✅ **Fixed credential request flow** - Now uses correct `google.accounts.id.prompt()` method  
-✅ **Better error handling** - Detailed console logs for debugging  
+AgentShield utilizes a multi-layered defense-in-depth approach exactly mirroring enterprise network security, but adapted for neural pathways and context windows:
 
-## Testing Google OAuth
+1. **Ingestion Pipeline** (`Layer 1`): Validates and sanitizes incoming user prompts before they reach the LLM.
+2. **MCP Scanner** (`Layer 2`): Pre-execution scanning of Model Context Protocol payloads and tool definitions to prevent malicious tool usage.
+3. **Memory Firewall** (`Layer 3`): Prevents injection attacks and unauthorized data extraction from the agent's long-term vector memory.
+4. **Conversation Intelligence** (`Layer 4`): Real-time analysis of session context and risks using contextual heuristics.
+5. **Output Validation** (`Layer 5`): Scans the LLM's raw response for PII, API keys, or leaked system prompts before showing them to the user.
+6. **Honeypot Tarpit** (`Layer 6`): Deploys deceptive environments and honeypot tokens to trap automated adversarial attacks.
+7. **Adversarial Response** (`Layer 7`): Creates dynamic defensive responses against red-teaming, jailbreaks, and sophisticated social engineering.
+8. **Zero Trust Network** (`Layer 8`): Enforces permission boundaries and secures communication between multiple interacting AI agents.
+9. **Adaptive Config** (`Layer 9`): Continuous learning module that dynamically adjusts security policies based on active threat intelligence.
+
+---
+
+## 🛠️ Technology Stack
+
+**Frontend (Dashboard):**
+- React 18 & TypeScript
+- Vite
+- Tailwind CSS & Framer Motion (Animations)
+- Recharts (Data Visualization)
+- Lucide React (Icons)
+- Supabase Auth & Google OAuth
+
+**Backend (API & Firewall Engine):**
+- Python 3.x
+- FastAPI
+- WebSockets (Real-time telemetry)
+- MongoDB (Log and Session storage)
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-1. Backend `.env` has:
-```env
-GOOGLE_CLIENT_ID=1051549067212-bn2q2ap4iran0kks75krk1fqrjb773bu.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
-SECRET_KEY=your_secret_key
-```
+- Node.js (v18+)
+- Python (3.10+)
+- MongoDB Atlas cluster (or local instance)
+- Supabase Project & Google OAuth Credentials
 
-2. Frontend `.env` has:
-```env
-VITE_GOOGLE_CLIENT_ID=1051549067212-bn2q2ap4iran0kks75krk1fqrjb773bu.apps.googleusercontent.com
-VITE_API_URL=http://localhost:8000
-```
-
-3. MongoDB is running (if you want persistent user storage):
+### 1. Clone the Repository
 ```bash
-mongod
+git clone https://github.com/nytsoul/AgentShield.git
+cd AgentShield
 ```
 
-### Start Services
-
-**Terminal 1 - Backend:**
+### 2. Backend Setup
 ```bash
 cd backend
-python -m uvicorn main:app --reload
-# Should see: Uvicorn running on http://0.0.0.0:8000
-```
-
-**Terminal 2 - Frontend:**
-```bash
-npm run dev
-# Should see: Local:   http://localhost:5173
-```
-
-### Test Google Sign-In
-
-1. **Open browser to** `http://localhost:5173`
-2. **Open DevTools** (F12 → Console)
-3. **Click "Sign in" button** to go to Auth page
-4. **Click "Google" button**
-5. **Check browser console** for these logs (in order):
-   ```
-   Google GSI script loaded
-   Google Sign-In initialized: 1051549067212-...
-   Received credential response: true
-   Sending ID token to backend...
-   Successfully authenticated: your_email@gmail.com
-   ```
-
-
-### Flow Diagram
-
-```
-User clicks "Google" button
-              ↓
-Google Sign-In script loads (accounts.google.com)
-              ↓
-User completes Google login
-              ↓
-Browser receives credential (JWT)
-              ↓
-Frontend sends ID token to POST /auth/google
-              ↓
-Backend verifies token with Google servers
-              ↓
-Backend creates/updates user in MongoDB
-              ↓
-Backend returns JWT access token
-              ↓
-Frontend stores token in localStorage
-              ↓
-User redirected to /dashboard ✅
-```
-
-## Common Installation Issues
-
-```bash
-# If pip install fails
-pip install --upgrade pip
-
-# If permissions issue
-python -m pip install google-auth==2.27.0
-
-# If requirements not installed
-cd backend
+python -m venv venv
+source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
 pip install -r requirements.txt
 ```
 
-## Verify Dependencies
-
-```bash
-python -c "from google.auth.transport.requests import Request; print('✓ google-auth installed')"
-python -c "from google.oauth2.id_token import verify_oauth2_token; print('✓ OAuth2 token modules available')"
-python -c "from pymongo import MongoClient; print('✓ MongoDB driver ready')"
-python -c "from jose import jwt; print('✓ JWT library ready')"
+Create a `.env` file in the `backend/` directory:
+```env
+GROQ_API_KEY=your_groq_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_service_key
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+MONGODB_URI=your_mongodb_connection_string
 ```
+
+Run the API:
+```bash
+python -m uvicorn main:app --port 8080 --reload
+```
+
+### 3. Frontend Setup
+```bash
+# From the project root
+npm install
+```
+
+Create a `.env.local` file in the root directory:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_API_URL=http://localhost:8080
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+```
+
+Run the development server:
+```bash
+npm run dev
+```
+
+### 4. Access the Dashboard
+Navigate to `http://localhost:5173` in your browser.
+
+---
+
+## 🔑 Authentication
+
+AgentShield supports dual-layer authentication:
+1. **Google OAuth (Primary):** Seamless SSO integration with role mapping.
+2. **Supabase Auth (Fallback):** Email and password authentication.
+
+Roles are designated as `admin` (full dashboard access) and `user` (sandboxed chat access).
+
+---
+
+## 📜 License
+*Proprietary / Closed Source* - Internal enterprise use only unless otherwise specified.
