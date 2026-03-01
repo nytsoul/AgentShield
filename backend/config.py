@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
 
+    # Server settings
+    host: str = "0.0.0.0"
+    port: int = 8000
+    debug: bool = False
+    allowed_origins: list = ["http://localhost:5173", "http://localhost:3000"]
+
     def __init__(self, **data):
         super().__init__(**data)
         # Support both MONGODB_URI and MONGODB_URL for backwards compatibility

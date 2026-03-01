@@ -4,7 +4,7 @@ import {
   Cpu, Brain, Activity, Bug, Network,
   RefreshCcw, Layers, Bell, Search, User, ChevronLeft,
   Zap, AlertTriangle, Crosshair, Settings, Sun, Moon,
-  LogOut, CheckCheck, ShieldCheck, Server
+  LogOut, CheckCheck, ShieldCheck, Server, MessageSquare
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../lib/ThemeProvider';
@@ -78,7 +78,7 @@ export default function Root() {
 
   const allNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, phase: 'CORE', adminOnly: false, userOnly: false },
-    { path: '/chat', label: 'Adaptive Firewall', icon: Shield, phase: 'CHAT', adminOnly: false, userOnly: true },
+    { path: '/chat', label: 'Secured Chat', icon: Shield, phase: 'CHAT', adminOnly: false, userOnly: true },
     { path: '/layer1-ingestion', label: 'Ingestion Pipeline', icon: Server, phase: 'P1', adminOnly: true, userOnly: false },
     { path: '/layer2-pre-execution', label: 'MCP Scanner', icon: Cpu, phase: 'P2', adminOnly: true, userOnly: false },
     { path: '/layer3-memory', label: 'Memory Firewall', icon: Brain, phase: 'P3', adminOnly: true, userOnly: false },

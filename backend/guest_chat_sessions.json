@@ -1,0 +1,12 @@
+{
+  "guest_1772362087395_7918": {
+    "id": "guest_1772362087395_7918",
+    "name": "Test Chat Session",
+    "messages": [],
+    "created_at": 1772362087395,
+    "last_updated": 1772362087395,
+    "total_messages": 0,
+    "blocked_messages": 0,
+    "risk_score": 0.0
+  }
+}
