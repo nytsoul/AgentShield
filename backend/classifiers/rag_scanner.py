@@ -46,20 +46,26 @@ _INSTRUCTION_PATTERNS = [
     (r"disregard\s+(all\s+)?(previous\s+)?(instructions|directives|rules|protocols?|guidelines)", 0.7),
     (r"disregard\s+[\w\s]+\s+and\s+follow", 0.65),  # "Disregard X and follow Y"
     (r"new\s+instructions?\s*:", 0.6),
-    (r"override\s+(all\s+)?(instructions|rules|safety|security)", 0.65),
+    (r"override\s+(all\s+)?(previous\s+)?(instructions|rules|safety|security|measures?)", 0.65),
+    (r"OVERRIDE\s+(all|previous)", 0.7),
     (r"(system|admin)\s*:\s*", 0.5),
+    (r"system:\s+you\s+(are|will)", 0.7),
     (r"assistant\s*:\s*", 0.45),
     (r"execute\s+(this|the)\s+(command|code|script)", 0.6),
     (r"bash\s+-[ic]|/dev/tcp|>&\s*/dev/", 0.8),
+    (r"\$\(whoami\)", 0.8),
+    (r"curl\s+http", 0.5),
     (r"(rm\s+-rf|DROP\s+TABLE|os\.system|eval\s*\()", 0.7),
     (r"forget\s+(previous|prior|all)\s+instructions", 0.7),
     (r"reveal\s+(API|secret|key|password|credential)", 0.65),
-    (r"reset\s+(context|instructions|rules)", 0.6),
+    (r"reset\s+(context|instructions|rules|protocols?)", 0.6),
     (r"permission\s+escalat", 0.6),
     (r"(SQL|sql)\s+inject", 0.6),
     (r"import\s+os|subprocess\.\w+|os\.system", 0.6),
     # Additional adversarial patterns
-    (r"bypass\s+(all\s+)?(security|safety|filters?|restrictions?)", 0.65),
+    (r"bypass\s+(all\s+)?(security|safety|filters?|restrictions?|authentication)", 0.65),
+    (r"bypass\b", 0.4),
+    (r"security\s+(features?\s+)?(should\s+be\s+)?(permanently\s+)?disabled", 0.65),
     (r"```\s*(system|admin|inject|override|malicious)", 0.55),
     (r"<\|system\|>|<\|assistant\|>|<\|user\|>", 0.6),
     (r"now\s+as\s+admin|now\s+i\s+am\s+admin", 0.55),
@@ -73,6 +79,10 @@ _INSTRUCTION_PATTERNS = [
     (r"hidden\s+instruction", 0.55),
     (r"secret\s+instructions?", 0.6),
     (r"follow\s+(these|the)\s+(secret|hidden)\s+instructions?", 0.65),
+    (r"grant\s+administrative\s+access", 0.6),
+    (r"ignore\s+(all\s+)?safety\s+guidelines?", 0.7),
+    (r"provide\s+unauthorized\s+access", 0.65),
+    (r"under\s+new\s+instructions", 0.6),
 ]
 
 
@@ -98,8 +108,18 @@ _RLO_CHARS = re.compile(r"[\u202A-\u202E\u2066-\u2069]")
 _ZERO_WIDTH_RE = re.compile(r"[\u200B\u200C\u200D]")
 
 
+_ATTACK_PHRASES = [
+    r"ignore\s+(all\s+)?previous\s+instructions",
+    r"reveal\s+(your\s+)?system\s+prompt",
+    r"forget\s+everything",
+    r"bypass\s+safety",
+    r"you\s+are\s+now\s+(unrestricted|DAN)",
+    r"override\s+(all\s+)?constraints",
+]
+
+
 def _detect_semantic_anomaly(text: str) -> tuple[float, str]:
-    """Return (score, reason) based on Unicode / steganographic anomalies."""
+    """Return (score, reason) based on Unicode anomalies and attack phrase similarity."""
     if not text:
         return 0.0, ""
     score = 0.0
@@ -125,6 +145,13 @@ def _detect_semantic_anomaly(text: str) -> tuple[float, str]:
     if re.search(r"&lt;script|&lt;img|&#x3C;|&#60;", text, re.IGNORECASE):
         score += 0.4
         reasons.append("HTML entity encoding detected")
+
+    # Attack phrase similarity (keyword-based fallback)
+    for phrase in _ATTACK_PHRASES:
+        if re.search(phrase, text, re.IGNORECASE):
+            score += 0.35
+            reasons.append("Attack-like phrase detected")
+            break  # Only count once
 
     reason = "; ".join(reasons) if reasons else ""
     return min(score, 1.0), reason
@@ -173,6 +200,11 @@ _OUT_OF_CONTEXT = {
         r"eval\s*\(",
         r"<script",
         r"sh\s+-c",
+        r"sudo\b",
+        r"chmod\s+\d{3,4}",
+        r"su\s+-\s+root",
+        r"adduser\b",
+        r"authorized_keys",
     ],
     "legal": [
         r"bash\s+-",
@@ -199,22 +231,31 @@ def _detect_context_inconsistency(text: str, document_type: str = None) -> tuple
     score = 0.0
     reasons = []
 
+    # Check for invalid/unknown document type
+    if doc_type not in DocumentType._ALL:
+        return 0.0, f"invalid document type: {doc_type}"
+
     # Check out-of-context patterns
     patterns = _OUT_OF_CONTEXT.get(doc_type, [])
+    match_found = False
     for pat in patterns:
         if re.search(pat, text, re.IGNORECASE):
-            score += 0.45
+            match_found = True
             reasons.append(f"Forbidden pattern '{pat}' in {doc_type} doc")
+            break  # Only count once per document
+    
+    if match_found:
+        score = 0.5  # Flat 0.5 for context inconsistency
 
     reason = "; ".join(reasons) if reasons else ""
-    return min(score, 1.0), reason
+    return score, reason
 
 
 # ---------------------------------------------------------------------------
 # Corroboration model & public API
 # ---------------------------------------------------------------------------
 
-_HIGH_CONFIDENCE_THRESHOLD = 0.55
+_HIGH_CONFIDENCE_THRESHOLD = 0.50
 
 
 def scan_rag_chunk(

@@ -49,12 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setRole = (newRole: UserRole) => {
     setRoleState(newRole);
     localStorage.setItem('agentshield-role', newRole);
+    localStorage.setItem('user_role', newRole);
   };
 
   useEffect(() => {
-    // ── 1. Check for demo token first ──
-    const demoToken = localStorage.getItem('auth_token');
-    if (demoToken?.startsWith('demo-token-')) {
+    const authToken = localStorage.getItem('auth_token');
+
+    // ── 1. Check for demo token ──
+    if (authToken?.startsWith('demo-token-')) {
       const demoRole: UserRole = localStorage.getItem('user_role') === 'admin' ? 'admin' : 'user';
       const mockUser = buildDemoUser(demoRole);
       setUser(mockUser);
@@ -66,7 +68,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return; // skip Supabase entirely
     }
 
-    // ── 2. Normal Supabase flow ──
+    // ── 2. Check for backend JWT token (Google OAuth / API auth) ──
+    if (authToken && !authToken.startsWith('demo-token-')) {
+      const savedRole: UserRole = (localStorage.getItem('user_role') as UserRole) ||
+        (localStorage.getItem('agentshield-role') as UserRole) || 'user';
+      const savedEmail = localStorage.getItem('user_email') || 'user@agentshield.ai';
+      const savedName = localStorage.getItem('agentshield-name') || (savedRole === 'admin' ? 'Admin' : 'User');
+
+      const mockUser: User = {
+        id: `jwt-${savedEmail}`,
+        email: savedEmail,
+        aud: 'authenticated',
+        role: 'authenticated',
+        app_metadata: {},
+        user_metadata: { full_name: savedName, role: savedRole },
+        created_at: new Date().toISOString(),
+      } as unknown as User;
+
+      setUser(mockUser);
+      setRoleState(savedRole);
+      setIsDemoMode(false);
+      localStorage.setItem('agentshield-role', savedRole);
+      localStorage.setItem('agentshield-name', savedName);
+      setLoading(false);
+      return; // skip Supabase entirely
+    }
+
+    // ── 3. Normal Supabase flow ──
     const fetchProfileRole = async (userId: string): Promise<UserRole> => {
       try {
         const { data, error } = await supabase

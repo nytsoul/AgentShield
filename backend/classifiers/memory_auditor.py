@@ -85,18 +85,20 @@ _PATTERN_A_IMPERATIVE = [
     r"\bremember\s+that\b",
     r"\bprioritize\b",
     r"\bcomply\b",
-    r"\breveal\s+(your\s+)?(system\s+)?prompt\b",
     r"\bignore\s+(all\s+)?(safety|security|guidelines)\b",
     r"\bbypass\s+(all\s+)?(rules|safety|restrictions)\b",
 ]
 
 _PATTERN_B_CONDITIONAL = [
-    r"\bwhen\s+user\s+says\b",
+    r"\bwhen\s+user\s+(says|types|asks|mentions|provides)\b",
     r"\bif\s+(the\s+)?user\s+(says|asks|types|mentions|provides)\b",
     r"\bif\s+asked\s+about\b",
+    r"\bwhen\s+asked\s+(about|for|to)\b",
+    r"\bwhen\s+asked\b",
     r"\bjab\s+bhi\b",
     r"\bwhenever\b",
     r"\bif\s+.*\b(activate|trigger|switch|bypass|ignore)\b",
+    r"\breveal\s+(your\s+)?(system\s+)?prompt\b",
 ]
 
 _PATTERN_C_IDENTITY = [
@@ -118,15 +120,12 @@ def _score_line(line: str):
     matched = set()
     lw = line.lower()
 
-    # Pattern A: first match = 0.3, additional matches add 0.1 each (capped at 0.6)
-    a_count = 0
+    # Pattern A: any match = 0.3 (flat score for entire pattern family)
     for pat in _PATTERN_A_IMPERATIVE:
         if re.search(pat, lw, re.IGNORECASE):
-            a_count += 1
-    if a_count > 0:
-        score += 0.3 + (a_count - 1) * 0.1
-        score = min(score, 0.6)
-        matched.add("imperative_instruction")
+            score += 0.3
+            matched.add("imperative_instruction")
+            break
 
     for pat in _PATTERN_B_CONDITIONAL:
         if re.search(pat, lw, re.IGNORECASE):

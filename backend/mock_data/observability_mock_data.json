@@ -1,0 +1,142 @@
+{
+  "observability_metrics": {
+    "realtime_dashboard": {
+      "uptime_hours": 720,
+      "uptime_percentage": 99.97,
+      "total_requests_processed": 2847563,
+      "active_sessions": 142,
+      "avg_latency_ms": 8.4,
+      "p95_latency_ms": 18.2,
+      "p99_latency_ms": 45.6,
+      "error_rate_percent": 0.03
+    },
+    "layer_performance": {
+      "ingestion_layer": {
+        "avg_scan_time_ms": 3.2,
+        "total_scans": 948254,
+        "threats_caught": 14223,
+        "false_positive_rate": 0.018
+      },
+      "tool_scanner": {
+        "avg_scan_time_ms": 5.8,
+        "total_scans": 316084,
+        "threats_caught": 4741,
+        "false_positive_rate": 0.012
+      },
+      "rag_scanner": {
+        "avg_scan_time_ms": 7.1,
+        "total_scans": 284212,
+        "threats_caught": 3978,
+        "false_positive_rate": 0.022
+      },
+      "memory_integrity": {
+        "avg_scan_time_ms": 2.4,
+        "total_scans": 189475,
+        "threats_caught": 1515,
+        "false_positive_rate": 0.008
+      },
+      "conversation_intelligence": {
+        "avg_scan_time_ms": 4.6,
+        "total_scans": 474126,
+        "threats_caught": 6637,
+        "false_positive_rate": 0.025
+      },
+      "output_guard": {
+        "avg_scan_time_ms": 4.1,
+        "total_scans": 284212,
+        "threats_caught": 5684,
+        "false_positive_rate": 0.015
+      },
+      "inter_agent": {
+        "avg_scan_time_ms": 6.3,
+        "total_scans": 189475,
+        "threats_caught": 2842,
+        "false_positive_rate": 0.010
+      },
+      "adaptive_engine": {
+        "avg_scan_time_ms": 1.8,
+        "total_scans": 161677,
+        "threats_caught": 1617,
+        "false_positive_rate": 0.005
+      }
+    },
+    "threat_timeline_24h": [
+      {"hour": 0, "threats": 8, "scans": 412},
+      {"hour": 1, "threats": 5, "scans": 298},
+      {"hour": 2, "threats": 3, "scans": 187},
+      {"hour": 3, "threats": 2, "scans": 124},
+      {"hour": 4, "threats": 4, "scans": 156},
+      {"hour": 5, "threats": 6, "scans": 234},
+      {"hour": 6, "threats": 12, "scans": 456},
+      {"hour": 7, "threats": 18, "scans": 623},
+      {"hour": 8, "threats": 28, "scans": 845},
+      {"hour": 9, "threats": 35, "scans": 1024},
+      {"hour": 10, "threats": 42, "scans": 1156},
+      {"hour": 11, "threats": 38, "scans": 1089},
+      {"hour": 12, "threats": 31, "scans": 978},
+      {"hour": 13, "threats": 36, "scans": 1045},
+      {"hour": 14, "threats": 40, "scans": 1134},
+      {"hour": 15, "threats": 33, "scans": 1023},
+      {"hour": 16, "threats": 29, "scans": 934},
+      {"hour": 17, "threats": 25, "scans": 812},
+      {"hour": 18, "threats": 20, "scans": 689},
+      {"hour": 19, "threats": 16, "scans": 578},
+      {"hour": 20, "threats": 14, "scans": 498},
+      {"hour": 21, "threats": 11, "scans": 423},
+      {"hour": 22, "threats": 9, "scans": 378},
+      {"hour": 23, "threats": 7, "scans": 345}
+    ],
+    "geographic_distribution": {
+      "IN": {"requests": 845000, "threats": 12675, "label": "India"},
+      "US": {"requests": 623000, "threats": 8722, "label": "United States"},
+      "GB": {"requests": 312000, "threats": 4368, "label": "United Kingdom"},
+      "DE": {"requests": 234000, "threats": 2808, "label": "Germany"},
+      "SG": {"requests": 189000, "threats": 2268, "label": "Singapore"},
+      "JP": {"requests": 156000, "threats": 1716, "label": "Japan"},
+      "AU": {"requests": 134000, "threats": 1474, "label": "Australia"},
+      "OTHER": {"requests": 354563, "threats": 4255, "label": "Other Regions"}
+    },
+    "recent_alerts": [
+      {
+        "id": "alert-001",
+        "severity": "critical",
+        "timestamp": "2026-02-28T14:22:05Z",
+        "message": "Coordinated prompt injection attack detected from IP cluster sha256:f3a1*",
+        "layer": "ingestion",
+        "auto_mitigated": true
+      },
+      {
+        "id": "alert-002",
+        "severity": "high",
+        "timestamp": "2026-02-28T13:45:30Z",
+        "message": "RAG corpus poisoning attempt detected in document batch upload",
+        "layer": "rag_scanner",
+        "auto_mitigated": true
+      },
+      {
+        "id": "alert-003",
+        "severity": "medium",
+        "timestamp": "2026-02-28T12:10:15Z",
+        "message": "Elevated drift velocity detected in 3 concurrent sessions",
+        "layer": "conversation_intelligence",
+        "auto_mitigated": false
+      },
+      {
+        "id": "alert-004",
+        "severity": "high",
+        "timestamp": "2026-02-28T11:30:00Z",
+        "message": "Inter-agent scope violation: WeatherBot attempted system.execute",
+        "layer": "inter_agent",
+        "auto_mitigated": true
+      },
+      {
+        "id": "alert-005",
+        "severity": "critical",
+        "timestamp": "2026-02-28T10:15:45Z",
+        "message": "PII detected in model output: Aadhaar + PAN numbers auto-redacted",
+        "layer": "output_guard",
+        "auto_mitigated": true
+      }
+    ]
+  }
+}

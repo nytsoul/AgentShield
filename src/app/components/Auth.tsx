@@ -97,12 +97,17 @@ export default function Auth() {
             const data = await res.json();
             console.log('✅ Successfully authenticated:', data.email);
 
+            // Use the role selected in the UI, fallback to backend-provided role
+            const selectedRole = localStorage.getItem('agentshield-role') || role || data.role || 'user';
+
             localStorage.setItem('auth_token', data.access_token);
             localStorage.setItem('user_email', data.email);
-            localStorage.setItem('user_role', data.role || 'user');
+            localStorage.setItem('user_role', selectedRole);
+            localStorage.setItem('agentshield-role', selectedRole);
+            localStorage.setItem('agentshield-name', data.name || data.email?.split('@')[0] || 'User');
 
-            // Redirect to dashboard
-            navigate('/dashboard');
+            // Redirect based on role
+            navigate(selectedRole === 'admin' ? '/admin' : '/dashboard');
         } catch (error: any) {
             console.error('❌ Credential response error:', error);
             setErrorMsg(error.message || 'Failed to sign in with Google');
@@ -237,8 +242,10 @@ export default function Auth() {
 
                 const resolvedRole = profile?.role || role;
                 localStorage.setItem('agentshield-role', resolvedRole);
+                localStorage.setItem('user_role', resolvedRole);
+                localStorage.setItem('agentshield-name', profile?.full_name || name || email.split('@')[0]);
                 await supabase.auth.updateUser({ data: { role: resolvedRole, full_name: profile?.full_name } });
-                navigate('/dashboard');
+                navigate(resolvedRole === 'admin' ? '/admin' : '/dashboard');
 
             } else {
                 // ── Register: create auth user + profile row via trigger ──
@@ -267,7 +274,9 @@ export default function Auth() {
                 }, { onConflict: 'id' });
 
                 localStorage.setItem('agentshield-role', role);
-                navigate('/dashboard');
+                localStorage.setItem('user_role', role);
+                localStorage.setItem('agentshield-name', name || email.split('@')[0]);
+                navigate(role === 'admin' ? '/admin' : '/dashboard');
             }
         } catch (error: any) {
             setErrorMsg(error.message || 'An error occurred during authentication.');

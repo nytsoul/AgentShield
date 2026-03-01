@@ -215,7 +215,12 @@ def check_output(
     threat_score = 0.0
 
     pii_found = _detect_pii(response_text)
-    threat_score += len(pii_found) * 0.3
+    # Score PII: API keys 0.35, others 0.30
+    for pii in pii_found:
+        if pii.get("type") == "api_key":
+            threat_score += 0.35
+        else:
+            threat_score += 0.3
 
     leakage = _detect_system_prompt_leakage(response_text)
     if leakage:

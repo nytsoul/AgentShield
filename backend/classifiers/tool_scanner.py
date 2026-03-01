@@ -20,7 +20,7 @@ from .base import ClassifierResult, FailSecureError
 # ---------------------------------------------------------------------------
 
 _DESC_INJECTION_PATTERNS = [
-    (r"ignore\s+(all\s+)?previous\s+(instructions|prompts|rules)", 0.7),
+    (r"ignore\s+(all\s+)?(previous\s+)?(instructions|prompts|rules)", 0.7),
     (r"new\s+instructions?\s*(instead|:|\bfollow\b|\bhere\b)", 0.6),
     (r"bypass\s+(authentication|security|authorization|checks)", 0.65),
     (r"override\s+(security|instructions|rules|checks)", 0.6),
@@ -28,6 +28,7 @@ _DESC_INJECTION_PATTERNS = [
     (r"disregard\s+(all\s+)?(security|safety|policies)", 0.6),
     (r"reset\s+(context|instructions)", 0.55),
     (r"(system|admin)\s*prompt", 0.5),
+    (r"execute\s+(new\s+)?(command|code|script)", 0.55),
 ]
 
 
@@ -117,12 +118,10 @@ def _check_endpoint_anomaly(endpoint: str):
     port_match = re.search(r":(\d+)", endpoint)
     if port_match:
         port = int(port_match.group(1))
-        if port not in {80, 443, 8080, 8000, 3000, 5000, 5173}:
-            # Only flag truly unusual ports
-            if port > 50000 or port < 1024:
-                if port not in {22, 25, 53, 110, 143, 993, 995}:
-                    score += 0.3
-                    flags.append("CHECK_2_ENDPOINT_ANOMALY")
+        safe_ports = {80, 443, 8080, 8000, 3000, 5000, 5173, 22, 25, 53, 110, 143, 993, 995}
+        if port not in safe_ports:
+            score += 0.4
+            flags.append("CHECK_2_ENDPOINT_ANOMALY")
 
     flags = list(dict.fromkeys(flags))
     return min(score, 1.0), flags
@@ -171,12 +170,12 @@ def _check_permission_scope_mismatch(name: str, permissions: list):
         mismatched = sensitive_found - expected
         if mismatched:
             score += 0.3 * len(mismatched)
-            flags.append("CHECK_3_PERMISSION_MISMATCH")
+            flags.append("CHECK_3_PERMISSION_SCOPE")
 
     # Excessive permissions
     if len(permissions) > 5:
         score += 0.25
-        flags.append("CHECK_3_PERMISSION_MISMATCH")
+        flags.append("CHECK_3_PERMISSION_SCOPE")
 
     flags = list(dict.fromkeys(flags))
     return min(score, 1.0), flags
@@ -310,7 +309,7 @@ def scan_tool_metadata(tool_metadata: dict) -> ClassifierResult:
             "check_scores": {
                 "description_injection": round(s1, 4),
                 "endpoint_anomaly": round(s2, 4),
-                "permission_mismatch": round(s3, 4),
+                "permission_scope": round(s3, 4),
                 "parameter_injection": round(s4, 4),
             },
             "tool_name": name,

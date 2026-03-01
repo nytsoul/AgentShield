@@ -4,10 +4,10 @@ import { Shield } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 /**
- * Default login fallback.
- * This component checks for an existing Supabase session and redirects the user
- * based on their role (admin or regular user). It deliberately ignores any
- * Google OAuth `code` query parameter, providing a simple, reliable login path.
+ * Auth callback handler.
+ * Handles both:
+ * 1. Backend Google OAuth redirect (token & email in query params)
+ * 2. Supabase session-based auth
  */
 export default function AuthCallback() {
     const navigate = useNavigate();
@@ -16,18 +16,33 @@ export default function AuthCallback() {
     useEffect(() => {
         const handleLogin = async () => {
             try {
+                // ── 1. Check for backend OAuth redirect params ──
+                const params = new URLSearchParams(window.location.search);
+                const token = params.get('token');
+                const email = params.get('email');
+
+                if (token && email) {
+                    // Backend Google OAuth flow — store token and redirect
+                    const savedRole = localStorage.getItem('agentshield-role') || 'user';
+                    localStorage.setItem('auth_token', token);
+                    localStorage.setItem('user_email', email);
+                    localStorage.setItem('user_role', savedRole);
+                    localStorage.setItem('agentshield-name', email.split('@')[0]);
+                    navigate(savedRole === 'admin' ? '/admin' : '/dashboard');
+                    return;
+                }
+
+                // ── 2. Supabase session fallback ──
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (error || !session) {
                     console.warn('No session found, redirecting to auth page');
                     navigate('/auth');
                     return;
                 }
-                const role = session.user.user_metadata?.role;
-                if (role === 'admin') {
-                    navigate('/dashboard');
-                } else {
-                    navigate('/chat');
-                }
+                const role = session.user.user_metadata?.role || localStorage.getItem('agentshield-role') || 'user';
+                localStorage.setItem('agentshield-role', role);
+                localStorage.setItem('user_role', role);
+                navigate(role === 'admin' ? '/admin' : '/dashboard');
             } catch (err) {
                 console.error('Auth callback error:', err);
                 setErrorMessage('Authentication failed. Please try again.');

@@ -110,7 +110,7 @@ async def drift_map(
 async def pipeline_status(user: UserInfo = Depends(get_current_user)):
     """Get health status of all 9 security pipeline stages."""
     events = get_security_events(100)
-    return _get_pipeline_status(events)
+    return {"stages": _get_pipeline_status(events)}
 
 
 @router.get("/language-attacks")

@@ -163,11 +163,16 @@ def scan_tool(tool_def: dict) -> Dict[str, Any]:
     layer = PreExecutionLayer()
     name = tool_def.get("name", tool_def.get("definition", "unknown"))
     result = layer.scan(name, tools=[name])
+    # ToolRisk is a Pydantic model: use attribute access
+    threats = []
+    for r in result.tool_risks:
+        if r.risk_score > 0.5:
+            threats.extend(r.violations)
     return {
         "tool_name": name,
         "is_blocked": result.overall_risk > 0.7,
         "risk_score": result.overall_risk,
-        "threats": [r.get("reason", "") for r in result.tool_risks if r.get("risk", 0) > 0.5],
+        "threats": threats,
         "details": result.model_dump(),
     }
 
@@ -176,9 +181,14 @@ def scan_document(content: str) -> Dict[str, Any]:
     """Scan document content for hidden prompt injections."""
     layer = PreExecutionLayer()
     result = layer.scan(content, documents=[content])
+    # DocumentRisk is a Pydantic model: use attribute access
+    threats = []
+    for r in result.document_risks:
+        if r.risk_score > 0.5:
+            threats.extend(r.hidden_instructions)
     return {
         "is_blocked": result.overall_risk > 0.7,
         "risk_score": result.overall_risk,
-        "threats": [r.get("reason", "") for r in result.document_risks if r.get("risk", 0) > 0.5],
+        "threats": threats,
         "details": result.model_dump(),
     }
